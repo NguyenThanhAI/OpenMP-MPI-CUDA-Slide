@@ -884,4 +884,296 @@ thread 2: -------------[< foo() >]< bar() >----->
 2: -------------xxxxxxxx[<foo()>]< ... >xxxxxxxxxxx[<bar()>]->
     \end{verbatim}
 \end{frame}
+
+\begin{frame}[fragile]{atomic}
+    \begin{itemize}
+        \item atomic là một trường hợp đặc biệt của critical sử dụng cho một số câu lệnh đơn giản
+    \end{itemize}
+
+    \begin{verbatim}
+int thread_id = omp_get_thread_num();
+//#pragma omp for
+for (int i = 0; i < 100; i++) {
+    #pragma omp critical
+    shared += 1;
+    printf("Thread %d: Incrementing shared to %d\n", thread_id, shared);
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{ordered}
+    \begin{itemize}
+        \item ordered bắt buộc vòng lặp thực hiện theo đúng thứ tự trong một parallel region
+        \item Đảm bảo các vòng lặp hoặc các đoạn code thực hiện theo đúng thứ tự đưa ra bởi lập trình viên
+    \end{itemize}
+    \begin{verbatim}
+#pragma omp parallel num_threads(4) private(tmp)
+#pragma omp for ordered
+for (int i = 0; i < 100; i++) {
+    tmp = do_in_parallel(i);
+    #pragma omp ordered
+    printf("i: %d, thread id: %d\n", i, omp_get_thread_num());
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{locks}
+    \begin{itemize}
+        \item Chỉ cho phép một luồng thực thi một đoạn code tại một thời điểm.
+        \item Ngăn khả năng bị race conditions khi nhiều luồng cố gắng truy cập và sửa một dữ liệu được chia sẻ tại cùng một thời điểm.
+        \item Sử dụng omp\_lock\_t
+        \item Một số hàm hay sử dụng:
+        \begin{itemize}
+            \item omp\_init\_lock(omp\_lock\_t *): Khởi tạo một khóa
+            \item omp\_set\_lock(omp\_lock\_t *): Lấy khóa dành quyền thực thi đoạn code
+            \item omp\_unset\_lock(omp\_lock\_t *): Giải phóng khóa cho các luồng khác
+            \item omp\_destroy\_lock(omp\_lock\_t *): Hủy khóa
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{locks}
+    \begin{verbatim}
+omp_lock_t lck;
+omp_init_lock(&lck);
+int id, tmp;
+#pragma omp parallel private (tmp, id)
+{
+    id = omp_get_thread_num();
+    tmp = id * id * id * id;
+    omp_set_lock(&lck);
+    printf("%d %d\n", id, tmp);
+    omp_unset_lock(&lck);
+}
+omp_destroy_lock(&lck); 
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{taskwait}
+    \begin{itemize}
+        \item taskwait giúp cho việc đợi tất cả các tác vụ song song mới thực hiện công việc tiếp theo (bằng một luồng) trong parallel region.
+    \end{itemize}
+
+    \begin{verbatim}
+#pragma omp parallel num_threads(4)
+{
+    #pragma omp single
+    {
+        #pragma omp task
+        printf("Task 1 executed by thread %d\n", omp_get_thread_num());
+        #pragma omp task
+        printf("Task 2 executed by thread %d\n", omp_get_thread_num());
+        #pragma omp task
+        printf("Task 3 executed by thread %d\n", omp_get_thread_num());
+        #pragma omp taskwait
+        printf("All tasks completed %d\n", omp_get_thread_num());
+    }
+}
+    \end{verbatim}
+\end{frame}
+
+\subsection{Một số hàm thư viện}
+
+\begin{frame}{Một số hàm thư viện}
+    \begin{itemize}
+        \item void omp\_set\_num\_threads(int);
+        \item int omp\_get\_num\_threads(void);
+        \item int omp\_get\_thread\_num(void);
+        \item int omp\_get\_max\_threads(void);
+        \item int omp\_in\_parallel(void);
+        \item int omp\_num\_procs(void);	
+
+    \end{itemize}
+\end{frame}
+
+\subsection{Một số biến môi trường}
+\begin{frame}{Một số biến môi trường}
+    \begin{itemize}
+        \item Đặt số luồng sử dụng: OMP\_NUM\_THREADS
+        \item Điều khiển schedule(runtime): OMP\_SCHEDULE "schedule[, chunk\_size]"
+    \end{itemize}
+\end{frame}
+
+\subsection{Tối ưu hiệu năng của chương trình viết bằng OpenMP}
+
+\begin{frame}{Hiệu năng của OpenMP}
+    \begin{itemize}
+        \item OpenMP tương đối dễ sử dụng bằng cách kết hợp các chỉ thị và mệnh đề.
+        \item Ta có thể viết một chương trình OpenMP đúng một cách nhanh chóng nhưng là không quan trọng hiệu năng
+        \item Khi số luồng lớn chi phí cần để quản lý cũng lớn
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số vấn đề hiệu năng hay gặp đối với OpenMP}
+    \begin{itemize}
+        \item Chi phí khởi tạo, quản lý luồng:
+        \begin{itemize}
+            \item dynamic schedule có chi phí lớn hơn nhiều static
+            \item Đồng bộ hóa có chi phí lớn, nếu không thật sự cần thì dùng nowait để tắt barrier
+            \item Parallel region lớn giảm overhead, cho phép sử dụng cache và tối ưu hóa
+        \end{itemize}
+        \item Overhead của các hàm thư viện
+        \item Không cân bằng tải giữa các luồng
+        \item Không tận dụng tốt cache và chia sẻ dữ liệu bị lỗi
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Overheads của một số chỉ thị}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\linewidth]{figures/OpenMP/Overheads_Directives.png}
+        \caption{Overheads của một số chỉ thị}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item Giảm tần suất sử dụng barrier với nowait
+    \end{itemize}
+
+    \begin{verbatim}
+#pragma	omp	parallel	
+{	
+    #pragma	omp	for
+    for(i=0;i<n;i++)	
+        ….	
+    #pragma	omp	for	nowait
+    for(i=0;i<n;i++)	
+}	
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{verbatim}
+#pragma	omp	parallel private(i)	
+{	
+    #pragma	omp	for	nowait
+    for(i=0;i<n;i++)	
+        a[i] +=b[i];	
+    #pragma	omp	for	nowait
+    for(i=0;i<n;i++)	
+        c[i] +=d[i];	
+    #pragma	omp	barrier	
+    #pragma	omp	for	nowait	reducAon(+:sum)	
+    for(i=0;i<n;i++)
+        sum	+=	a[i]	+	c[i];	
+}	
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item Tránh sử dụng ordered với khối lệnh lớn
+        \item Tránh sử dụng critical với khối lệnh lớn
+    \end{itemize}
+    \begin{verbatim}
+    #pragma	omp	parallel shared(a,b) private(c,d)	
+    {	
+        ...	
+        #pragma	omp	critical
+        {	
+            a += 2*c;	
+            c =	d*d; // Nên để biểu thức ra ngoài
+        }	
+    }	
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item Parallel regions hãy dài nhất có thể
+    \end{itemize}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{verbatim}
+#pragma	omp	parallel		
+{	
+    #pragma	omp	for	
+    for(...) {...}	
+}	
+opt = opt +	N; // sequential
+#pragma	omp	parallel	
+{	
+    #pragma	omp	for	
+    for(...) {...}	
+    #pragma	omp	for	
+    for(...) {...}	
+}    
+            \end{verbatim}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{verbatim}
+#pragma	omp	parallel		
+{	
+    #pragma	omp	for	
+    for(...) {...}	
+}
+#pragma omp single nowait
+opt = opt +	N; // sequential	
+#pragma	omp	for	
+for(...) {...}	
+#pragma	omp	for	
+for(...) {...}	
+            \end{verbatim}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item Một parallel region chứa tất cả các vòng lặp for.
+    \end{itemize}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{verbatim}
+for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++)
+        #pragma omp parallel for private(k)
+        for (k = 0; k < n; k++) {
+            ...
+        }
+            \end{verbatim}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{verbatim}
+#pragma omp parallel private(i, j, k)
+for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++)
+        #pragma omp for
+        for (k = 0; k < n; k++) {
+            ...
+        }
+            \end{verbatim}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item Tránh chọn chunk size nhỏ
+    \end{itemize}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.9\linewidth]{figures/OpenMP/Overhead_Static_Scheduling_Chunk_Size.png}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.9\linewidth]{figures/OpenMP/Overhead_Dynamic_Scheduling_Chunk_Size.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+    \begin{itemize}
+        \item chỉ thị master hiệu quả hơn single nhưng cần thread id 0 sẵn sàng
+        \item single hiệu quả hơn nếu thread id 0 không sẵn sàng
+        \item single có barrier ngầm, khi không cần thiết nên dùng thêm nowait
+    \end{itemize}
+\end{frame}
+
 \end{document}
