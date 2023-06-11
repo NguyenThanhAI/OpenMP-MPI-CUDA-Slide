@@ -659,4 +659,229 @@ for (i = 0; i < M; i++) {
 }
     \end{verbatim}
 \end{frame}
+
+\subsection{Môi trường dữ liệu}
+
+\begin{frame}{Môi trường dữ liệu}
+    \begin{itemize}
+        \item Hầu hết các biến được chia sẻ giữa các luồng
+        \item Các biến toàn cục, static mặc định là chia sẻ
+        \item Các biến cục bộ trong hàm được gọi trong parallel region hoặc các biến được khai báo trong parallel region là riêng tư.
+        \item shared, private, firstprivate, lastprivate?
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mệnh đề private}
+    \begin{itemize}
+        \item Mệnh đề private khai báo một biến là riêng tư đối với mỗi luồng trong một parallel region.
+        \item Các biến riêng có các phiên bản riêng cho từng luồng và mỗi luồng hoạt động với bản sao riêng của biến đó.
+        \item Giá trị ban đầu của một biến riêng tư không được xác định, vì vậy nó cần được khởi tạo rõ ràng ở trong luồng.
+        \item Sau khi kết thúc parallel region, giá trị biến ban đầu được trở lại giá trị ban đầu trước khi thực hiện parallel region (chưa được khởi tạo????)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mệnh đề firstprivate}
+    \begin{itemize}
+        \item Giống như private nhưng biến riêng tư được khởi tạo bằng giá trị ban đầu của biến ban đầu.
+        \item Sau khi kết thúc parallel region, giá trị biến ban đầu được trở lại giá trị ban đầu trước khi thực hiện parallel region (chưa được khởi tạo????)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mệnh đề lastprivate}
+    \begin{itemize}
+        \item Giống như firstprivate nhưng giá trị của biến ban đầu sau khi thực hiện parallel region được gán cho giá trị cuối cùng mà một biến riêng tư được gán trong khi thực hiện parallel region.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ví dụ private}
+    \begin{verbatim}
+int id = 0;
+#pragma omp parallel private(id)
+{
+    id = omp_get_thread_num();
+    printf("Thread id %d\n", id);
+}
+printf("Thread %d id\n", id);
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Mệnh đề reduction}
+    \begin{itemize}
+        \item reduction dùng để thực hiện các phép toán trên một biến được chia sẻ trên nhiều luồng trong một parallel region.
+        \item reduction kết hợp các giá trị của biến trên từng luồng và lưu trữ kết quả trên một biến duy nhất
+        \item Hay sử dụng khi tính tổng, tích, max, min trên một tập các giá trị.
+        \item Hay được sử dụng với vòng lặp for.
+        \begin{verbatim}
+#pragma omp parallel for reduction(operator: variable)
+        \end{verbatim}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Mệnh đề reduction}
+    \begin{verbatim}
+int i = 0;
+#pragma omp parallel reduction(*:i)
+{
+    i=omp_get_num_threads();
+    printf("%d\n", i);
+} // 1 * 4 * 4 * 4 * 4
+printf("result=%d\n", i); 
+    \end{verbatim}
+\end{frame}
+
+\subsection{Đồng bộ hóa trong OpenMP}
+\begin{frame}
+    \begin{itemize}
+        \item Đồng bộ hóa mức cao:
+        \begin{itemize}
+            \item critical
+            \item atomic 
+            \item barrier
+            \item ordered
+        \end{itemize}
+        \item Đồng bộ hóa mức thấp
+        \begin{itemize}
+            \item flush
+            \item locks
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{critical}
+    \begin{itemize}
+        \item critical chỉ cho phép một luồng duy nhất được thực thi một đoạn code tại một thời điểm
+    \end{itemize}
+
+    \begin{verbatim}
+int shared = 0;
+#pragma omp parallel
+{
+    int thread_id = omp_get_thread_num();
+    #pragma omp for
+    for (int i = 0; i < 100; i++) {
+        #pragma omp critical
+        {
+            shared += 1;
+            printf("Thread %d: Incrementing shared to %d\n", thread_id, shared);
+        }
+    }
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   foo();
+   bar();
+   ...
+}
+    \end{verbatim}
+thread 0: ----< foo() >< bar() >----------->
+
+thread 1: --< foo() >< bar() >------------->
+
+thread 2: ---------< foo() >< bar() >------>
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   #pragma omp single
+   foo();
+   bar();
+   ...
+}
+    \end{verbatim}
+    \begin{verbatim}
+thread 0: ------[-------|]< bar() >----->
+
+thread 1: ---[< foo() >-|]< bar() >----->
+
+thread 2: -------------[|]< bar() >----->
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   #pragma omp single nowait
+   foo();
+   bar();
+   ...
+}
+    \end{verbatim}
+    \begin{verbatim}
+thread 0: ------[]< bar() >----------->
+
+thread 1: ---[< foo() >]< bar() >----->
+
+thread 2: -------------[]< bar() >---->
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   #pragma omp critical
+   foo();
+   bar();
+   ...
+}
+    \end{verbatim}
+    \begin{verbatim}
+thread 0: ------xxxxxxxx[< foo() >]< bar() >-------------->
+
+thread 1: ---[< foo() >]< bar() >------------------------->
+
+thread 2: -------------xxxxxxxxxxxx[< foo() >]< bar() >--->
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   if (omp_get_thread_num() > 1) {
+     #pragma omp critical(foo2)
+     foo();
+   }
+   else {
+     #pragma omp critical(foo01)
+     foo();
+   }
+   bar();
+   ...
+}
+    \end{verbatim}
+    \begin{verbatim}
+thread 0: ------xxxxxxxx[< foo() >]< bar() >---->
+thread 1: ---[< foo() >]< bar() >--------------->
+thread 2: -------------[< foo() >]< bar() >----->
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{So sánh với single}
+    \begin{verbatim}
+#pragma omp parallel num_threads(3)
+{
+   #pragma omp critical
+   foo();
+   ...
+   #pragma omp critical
+   bar();
+   ...
+}
+    \end{verbatim}
+
+    \begin{verbatim}
+0: ------xxxxxx[<foo()>]< ... >xxxxxxxxxxx[<bar()>]---------->
+1: ---[<foo()>]< ... >xxxxxxxxxxx[<bar()>]------------------->
+2: -------------xxxxxxxx[<foo()>]< ... >xxxxxxxxxxx[<bar()>]->
+    \end{verbatim}
+\end{frame}
 \end{document}
