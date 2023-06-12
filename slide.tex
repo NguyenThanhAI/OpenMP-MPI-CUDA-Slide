@@ -603,6 +603,14 @@ for(i = 0; i < N; i++) {
     \end{verbatim}
 \end{frame}
 
+\begin{frame}{Các mệnh đề schedule}
+    \begin{figure}[[H]]
+        \centering
+        \includegraphics[width=0.8\linewidth]{figures/OpenMP/Schedule_Modes_Comparison.png}
+        \caption{So sánh các chế độ schedule}
+    \end{figure}
+\end{frame}
+
 \begin{frame}[fragile]{Chỉ thị sections}
     Mỗi section được gán cho một thread
     \begin{verbatim}
@@ -1173,6 +1181,320 @@ for (i = 0; i < n; i++)
         \item chỉ thị master hiệu quả hơn single nhưng cần thread id 0 sẵn sàng
         \item single hiệu quả hơn nếu thread id 0 không sẵn sàng
         \item single có barrier ngầm, khi không cần thiết nên dùng thêm nowait
+    \end{itemize}
+\end{frame}
+
+\section{Message Passing Interface}
+
+\subsection{Tổng quan MPI}
+
+\begin{frame}{Tổng quan MPI}
+    \begin{itemize}
+        \item Là một API tiêu chuẩn cho quá trình truyền thông đẹp, tra cứu thông tin, đăng ký, phân nhóm và tạo mới kiểu dữ liệu thông điệp.
+        \item Có thể truyền giao thức theo hai hình thức:
+        \begin{itemize}
+            \item Truyền điểm - điểm
+            \item Truyền quảng bá (một - nhiều, nhiều - một , nhiều - nhiều)
+        \end{itemize}
+        \item Hỗ trợ lập trình song song mức thấp
+        \item Được hỗ trợ trên Fortran 77 và C, MPI2 được hỗ trợ trên C++/Fortran90
+        \item Một API rất lớn (128 hàm), MPI-2 có thêm 152 hàm. Đa số người dùng chỉ dùng một phần.
+        \item Hướng hiệu năng
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Lịch sử MPI}
+    \begin{itemize}
+        \item Nhiều thư viện truyền thông đẹp đã được tạo ra trong quá khứ:
+        \begin{itemize}
+            \item TCGMSG, P4, PARMACS, EXPRESS, NX, MPL, PVM
+        \end{itemize}
+        \item 1992-1994 diễn đàn về truyền thông điệp định nghĩa một tiêu chuẩn mới cho truyền thông điệp (ban đầu đặt là MPPs)
+        \item Quá trình phát triển của tiêu chuẩn:
+        \begin{itemize}
+            \item 1994: MPI 1.0: các giao tiếp cơ bản, Fortran77 và C
+            \item 1995: MPI 1.1: sửa lỗi bản trước
+            \item 1997: MPI 2.0: Giao tiếp 1 phía, I/O, khởi tạo tiến trình, Fortran 99 và C, giải thích các hàm rõ hơn. Bao gồm MPI 1.2.
+            \item 2008: MPI 1.3, 2.1: kết hợp 1.3 và 2.0
+            \item 2009: MPI 2.2: sửa lỗi và giải thích các hàm
+            \item MPI 3.0 đang trong quá trình chuẩn hóa và hoàn thiện
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Bản đồ phát triển}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.75\linewidth]{figures/MPI/MPI_Genealogy.png}
+        \caption{Quá trình phát triển của MPI}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{MPI cơ bản}
+    \begin{itemize}
+        \item Góc nhìn logic của nền tảng truyền thông điệp:
+        \begin{itemize}
+            \item p tiến trình
+            \item Mỗi tiền trình có một không gian bộ nhớ riêng
+        \end{itemize}
+        \item Tất cả dữ liệu phải cần được phân chia rõ ràng
+        \begin{itemize}
+            \item Tiến trình cần truyền dữ liệu
+            \item Tiến trình cần nhận dữ liệu
+        \end{itemize}
+        \item Thường sử dụng mô thức lập trình (SIMD)
+        \item Ưu điểm:
+        \begin{itemize}
+            \item Mô hình hiệu năng đơn giản: chi phí ngầm dễ tính
+            \item Hiệu năng và tính linh hoạt cao
+        \end{itemize}
+        \item Nhược điểm: Mô hình truyền thông điệp hai phía làm chương trình phức tạp
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI cơ bản}
+    \begin{itemize}
+        \item File tiêu đề mpi.h cho C/C++ và mpif.h cho Fortran
+        \item Tất cả các hàm đều trả về giá trị lỗi
+        \item Trong C/C++, các đối số được truyền vào dạng con trỏ
+        \item Luôn luôn bắt đầu với MPI\_Init() và kết thúc với MPI\_Finalize() (hoặc MPI\_Abort()).
+        Hai hàm trên đều cần được gọi bởi tất cả các tiến trình
+        \item Tất cả các hàm, kiểu dữ liệu, hằng số đều có tiền tố là "MPI\_"
+        \item Một chương trình MPI có thể chỉ cần sử dụng 6 hàm thư viện
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI cơ bản}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.85\textheight]{figures/MPI/MPI_Full_Routines.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Một số hàm thông dụng}
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{|l|l|}
+            \hline
+            MPI\_Init & Khởi tạo môi trường MPI \\
+            \hline
+            MPI\_Finalize & Ngắt môi trường MPI \\
+            \hline
+            MPI\_Comm\_size & Xác định số tiến trình \\
+            \hline
+            MPI\_Comm\_rank & Xác định id của tiến trình gọi hàm trong nhóm \\
+            \hline
+            MPI\_Send & Truyền thông điệp \\
+            \hline
+            MPI\_Recv & Nhận thông điệp \\
+            \hline
+        \end{tabular}
+    \end{table}
+    
+\end{frame}
+
+\begin{frame}{Khởi tạo và ngắt môi trường MPI}
+    \begin{itemize}
+        \item int MPI\_Init(int *argc, char ***argv) 
+        \begin{itemize}
+            \item Câu lệnh được gọi trước các hàm khác của MPI
+            \item Khởi tạo môi trường MPI
+        \end{itemize}
+        \item int MPI\_Finalize()
+        \begin{itemize}
+            \item Được gọi khi kết thúc tính toán
+            \item Ngắt môi trường MPI
+        \end{itemize}
+        \item Mã trả về:
+        \begin{itemize}
+            \item MPI\_SUCCESS
+            \item MPI\_ERROR
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Bộ giao tiếp}
+    \begin{itemize}
+        \item MPI\_Comm: nhóm các tiến trình có thể giao tiếp với nhau
+        \item Được truyền vào là đối số của một hàm truyền thông điệp
+        \item Một tiến trình có thể thuộc về nhiều nhóm khác nhau
+        \item MPI\_COMM\_WORLD: bộ giao tiếp toàn cục bao gồm tất cả các tiến trình
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.4\textheight]{figures/MPI/MPI_COMM_WORLD.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Truy vấn bộ giao tiếp}
+    \begin{itemize}
+        \item int MPI\_Comm\_size(MPI\_Comm comm, int *size) : xác định số tiến trình
+        \item int MPI\_Comm\_rank(MPI\_Comm comm, int *rank) : xác định chỉ số của tiến tình gọi hàm ($0 \leq rank <$ số tiến trình trong nhóm)
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.4\textheight]{figures/MPI/Rank.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Ngắt môi trường MPI}
+    \begin{itemize}
+        \item int MPI\_Finalize(): Ngắt kết nối môi trường MPI
+        \item int MPI\_Abort(MPI\_Comm comm, int errorcode): Nếu một tiến trình bắt được một lỗi và không xử lý được
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Chương trình MPI Hello World}
+    \begin{verbatim}
+#include<stdio.h>
+#include<mpi.h>
+int main(int argc, char** argv) {
+    int size, rank;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    printf("From process %d out of %d processes", rank, size);
+    MPI_Finalize();
+    return 0;
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Truyền thông}
+    \begin{itemize}
+        \item Giao tiếp truyền thông điệp có thể giữa hai tiến trình hoặc giữa một nhóm các tiến trình
+        \item Truyền thông thường là truyền mảng dữ liệu tổ chức theo kiểu dữ liệu MPI:
+        \begin{itemize}
+            \item Kiểu dữ liệu được định nghĩa là ánh xạ tớ kiểu dữ liệu của ngôn ngữ lập trình sử dụng MPI.
+            \item Kiểu dữ liệu người do người dùng định nghĩa, các cấu trúc hoặc các kiểu dữ liệu khác
+            \item Kiểu dứ liệu do người dùng định nghĩa sẽ được MPI tối ưu
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các kiểu dữ liệu nguyên thủy của MPI}
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{ll}
+            \hline
+            Kiểu dữ liệu của MPI & Kiểu dữ liệu của C \\
+            \hline
+            MPI\_CHAR & signed char \\
+            MPI\_SHORT & signed short int \\
+            MPI\_INT & signed int \\
+            MPI\_LONG & signed long int \\
+            MPI\_UNSIGNED\_CHAR & unsigned char \\
+            MPI\_UNSIGNED\_SHORT & unsigned short int \\
+            MPI\_UNSIGNED & unsigned int \\
+            MPI\_UNSIGNED\_LONG & unsigned long int \\
+            MPI\_FLOAT & float \\
+            MPI\_DOUBLE & double \\
+            MPI\_LONG\_DOUBLE & long double \\
+            MPI\_BYTE & 8 bits \\
+            MPI\_PACKED & dãy bytes được đóng gói \\
+            \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Thông điệp}
+    Một thông điệp bao gồm các trường thông tin:
+    \begin{itemize}
+        \item Địa chỉ người gửi
+        \item Nơi lưu trữ thông điệp
+        \item Kiểu dữ liệu thông điệp
+        \item Kích thước thông điệp
+        \item Thẻ thông điệp
+        \item Địa chỉ người nhận 
+        \item Nơi lưu trữ nhận thông điệp
+        \item Kiểu dữ liệu phù hợp nơi nhận 
+        \item Thẻ thông điệp khớp với bên gửi
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp điểm - điểm}
+    \begin{itemize}
+        \item Giao tiếp blocking: Chờ đến khi truyền thông điệp hoàn thành
+        \item Giao tiếp non-blocking: Trả về không cần đợi khi truyền thông điệp hoàn thành
+        \item Các hình thức gửi:
+        \begin{itemize}
+            \item Đồng bộ: thông điệp chỉ được gửi khi biết chắc chắn có người đã sẵn sàng đợi nhận ở phía bên kia (fax).
+            \item Bộ đệm: tin nhắn được gửi đi nếu người bên kia đang đợi hoặc nếu không sẽ được lưu vào một bộ đệm tạm thời cho đến khi lấy thông điệp khỏi bộ đệm.
+            \item Kiểu sẵn sàng: giống như đồng bộ nhưng không có xác nhận từ bên nhận.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp có blocking của MPI}
+    \begin{itemize}
+        \item int MPI\_Send(void *buf, int count, MPI\_Datatype datatype,
+                            int dest, int tag, MPI\_Comm comm);
+        \begin{itemize}
+            \item buf là địa chỉ bắt đầu chứa thông điệp cần được truyền
+            \item count là số phần tử của thông điệp
+            \item datatype là kiểu dữ liệu của thông điệp
+            \item dest là rank của tiến trình nhận thông điệp
+            \item tag là một số định danh của thông điệp, thống nhất giữa bên gửi và bên nhận
+            \item comm là bộ giao tiếp
+        \end{itemize}
+        \item Ví dụ: MPI\_Send(A, ns, MPI\_INT, 1, 0, MPI\_COMM\_WORLD): 
+        Truyền ns phần tử kiểu int từ địa chỉ A sang tiến trình 1 với tag là 0.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp có blocking của MPI}
+    \begin{itemize}
+        \item MPI\_Ssend: Gửi đồng Bộ
+        \begin{itemize}
+            \item Người gửi thông báo người nhận, người nhận xác nhận sẵn sàng và người gửi gửi thông điệp.
+        \end{itemize}
+        \item MPI\_Bsend: Gửi bộ đệm
+        \begin{itemize}
+            \item Người gửi đưa dữ liệu và một bộ đệm và trả về ngay lập tức
+        \end{itemize}
+        \item MPI\_Rsend: Gửi sẵn sàng
+        \begin{itemize}
+            \item Người nhận được thông báo và dữ liệu được gửi ngay
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số lưu ý khi gửi thông điệp blocking}
+    \begin{itemize}
+        \item Đối với dữ liệu nhỏ, có thể dùng bộ đệm, đồng bộ phù hợp với dữ liệu lớn hơn
+        \item MPI\_Ssend có thể gây ra deadlock
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Hiệu năng của truyền thông điệp blocking}
+    \begin{itemize}
+        \item Truyền đồng bộ  cho tốc độ truyền dữ liệu cao nhất, nhưng chi phí khở tạo lại rất cao (độ trễ) và nguy cơ xảy ra deadlock.
+        \item Truyền bộ đệm cho độ trễ thấp nhất nhưng:
+        \begin{itemize}
+            \item Quản lý bộ đệm phức tạp
+            \item Vấn đề về băng thông do chi phí sao chép
+        \end{itemize}
+        \item Gửi sẵn sàng có vẻ là tốt nhất nhưng cũng rất dễ gây khó khăn trong lập trình nên cũng tránh sử dụng
+        \item Truyền theo tiêu chuẩn cần phải được tối ưu cẩn thận. Với thông điệp kích thước lớn gần như chắc chắn xảy ra deadlock
+    \end{itemize}
+    
+\end{frame}
+
+\begin{frame}{Nhận thông điệp có blocking của MPI}
+    \begin{itemize}
+        \item int MPI\_Recv(void *buf, int count, MPI\_Datatype datatype,
+                            int source, int tag, MPI\_Comm comm,
+                            MPI\_Status *status)
+        \begin{itemize}
+            \item buf là địa chỉ bắt đầu chứa thông điệp nhận được
+            \item count là số phần tử của thông điệp
+            \item datatype là kiểu dữ liệu của thông điệp
+            \item source là rank của tiến trình gửi thông điệp
+            \item tag là một số định danh của thông điệp, thống nhất giữa bên gửi và bên nhận
+            \item comm là bộ giao tiếp
+            \item status là địa chỉ biến nhận trạng thái
+        \end{itemize}
+        \item Ví dụ: MPI\_Recv(B, ns, MPI\_INT, 0, 1, MPI\_COMM\_WORLD, \&status);
     \end{itemize}
 \end{frame}
 
