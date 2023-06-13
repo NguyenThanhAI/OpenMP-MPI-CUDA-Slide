@@ -1450,7 +1450,7 @@ int main(int argc, char** argv) {
         \end{itemize}
         \item MPI\_Bsend: Gửi bộ đệm
         \begin{itemize}
-            \item Người gửi đưa dữ liệu và một bộ đệm và trả về ngay lập tức
+            \item Người gửi đưa dữ liệu và một bộ đệm và trả về ngay lập tức khi quá trình sao chép dữ liệu vào bộ đệm bên người gửi hoàn thành
         \end{itemize}
         \item MPI\_Rsend: Gửi sẵn sàng
         \begin{itemize}
@@ -1496,6 +1496,102 @@ int main(int argc, char** argv) {
         \end{itemize}
         \item Ví dụ: MPI\_Recv(B, ns, MPI\_INT, 0, 1, MPI\_COMM\_WORLD, \&status);
     \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số vấn đề về nhận thông điệp có blocking của MPI}
+    \begin{itemize}
+        \item Bộ đệm có thể có kích thước không đúng hoặc kiểu dữ liệu được cấp phát không phù hợp với thông điệp nhận được thì bộ đệm có thể mất dữ liệu hoặc có dữ liệu nhiễu.
+        \item Các thông tin như source, tag được lưu trong biến MPI\_Status
+        \item Biến errorcode có thể dùng để phục vụ cho quá trình debug
+        \item Nếu bất kỳ tiến trình nào trong nhóm có thể là source thì dùng thẻ MPI\_ANY\_source
+        \item Nếu bất kỳ tag nào cũng được chấp nhận có thể dùng thẻ MPI\_ANY\_TAG
+        \item Độ dài thông điệp $\leq$ độ dài bộ đệm đã đặt trước
+        \item Thứ tự nhận và gửi bản tin là quan trọng
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Một số biến trạng thái bên nhận}
+    \begin{itemize}
+        \item MPI\_Status
+        \begin{itemize}
+            \item Lưu thông tin về quá trình của hàm nhận MPI\_Recv
+            \item Là một biến cấu trúc:
+            \begin{verbatim}
+typedef struct MPI_Status {
+    int MPI_SOURCE;
+    int MPI_TAG;
+    int MPI_ERROR; };
+            \end{verbatim}
+        \end{itemize}
+        \item int MPI\_Get\_count(MPI\_Status *status, MPI\_Datatype datatype, int *count) 
+        \begin{itemize}
+            \item Trả về số phần tử dữ liệu đã nhận được 
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Deadlock với MPI\_Send / MPI\_Recv}
+    \begin{verbatim}
+int a[10], b[10], rank;
+MPI_Status s1, s2;
+...
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+if (rank == 0) {
+    MPI_Send(a, 10, MPI_INT, 1, 1, MPI_COMM_WORLD);
+    MPI_Send(b, 10, MPI_INT, 1, 2, MPI_COMM_WORLD);
+}
+else if (rank == 1) {
+    MPI_Recv(b, 10, MPI_INT, 0, 2, MPI_COMM_WORLD, &s1);
+    MPI_Recv(a, 10, MPI_INT, 0, 1, MPI_COMM_WORLD, &s2);
+}
+...
+    \end{verbatim}
+
+    \begin{itemize}
+        \item Deadlock xảy ra do tiến trình 0 gửi mảng a trước khi gửi mảng b, nhưng tiến trình 1 lại đợi nhận mảng b trước khi gửi mảng a
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Deadlock khi truyền thông điệp theo vòng tròn khép kín}
+    \begin{verbatim}
+int a[10], b[10], size, rank;
+MPI_Status status;
+...
+MPI_Comm_size(MPI_COMM_WORLD, &size);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+MPI_Send(a, 10, MPI_INT, (rank+1)%size, 1,
+ MPI_COMM_WORLD);
+MPI_Recv(b, 10, MPI_INT, (rank-1+size)%size, 1,
+    MPI_COMM_WORLD, &status);
+... 
+    \end{verbatim}
+    Mỗi tiến trình gửi thông điệp sang tiến trình kề bên phải và tiến trình cuối cùng gửi thông điệp cho tiến trình đầu tiên tạo thành một vòng tròn khép kín
+\end{frame}
+
+\begin{frame}[fragile]{Khắc phục tình trạng deadlock}
+    \begin{verbatim}
+int a[10], b[10], size, rank;
+MPI_Status status;
+...
+MPI_Comm_size(MPI_COMM_WORLD, &size);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+if (rank%2 == 1) { // tiến trình lẻ gửi trước, nhận sau
+    MPI_Send(a, 10, MPI_INT, (rank+1)%size, 1, MPI_COMM_WORLD);
+    MPI_Recv(b, 10, MPI_INT, (rank-1+size)%size, 1,
+    MPI_COMM_WORLD, &status);
+}
+else { // tiến trình chẵn nhận trước, gửi sau
+    MPI_Recv(b, 10, MPI_INT, (rank-1+size)%size, 1,
+             MPI_COMM_WORLD, &status);
+     MPI_Send(a, 10, MPI_INT, (rank+1)%size, 1,
+             MPI_COMM_WORLD);
+    }
+...     
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp non-blocking trong MPI}
+    Một số hàm
 \end{frame}
 
 \end{document}
