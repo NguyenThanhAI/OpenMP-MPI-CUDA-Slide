@@ -1644,6 +1644,27 @@ else { // tiến trình chẵn nhận trước, gửi sau
     \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]{Truyền thông điệp non-blocking trong MPI}
+    \begin{verbatim}
+int rank, size;
+int data_send, data_recv;
+MPI_Request request;
+MPI_Status status;
+MPI_Init(&argc, &argv);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+MPI_Comm_size(MPI_COMM_WORLD, &size);
+data_send = rank;
+// Send data in a ring from process 0 to process (size - 1)
+MPI_Isend(&data_send, 1, MPI_INT, 
+(rank + 1) % size, 0, MPI_COMM_WORLD, &request);
+MPI_Recv(&data_recv, 1, MPI_INT, 
+(rank + size - 1) % size, 0, MPI_COMM_WORLD, &status);
+MPI_Wait(&request, &status); 
+printf("Process %d received data: %d\n", rank, data_recv);
+MPI_Finalize();
+    \end{verbatim}
+\end{frame}
+
 \subsection{Truyền thông điệp quảng bá trong MPI}
 
 \begin{frame}{Truyền thông điệp quảng bá}
@@ -1747,6 +1768,20 @@ else { // tiến trình chẵn nhận trước, gửi sau
     \end{table}
 \end{frame}
 
+\begin{frame}{Toán tử nhị phân do người dùng định nghĩa}
+    \begin{itemize}
+        \item MPI cho phép người dùng định nghĩa toán tử nhị phân cho các hàm reduction
+        \item int MPI\_Op\_create(MPI\_User\_function *function, int commute,
+                            MPI\_Op *op)
+        \item Nếu commute là khác 0, toán tử là giao hoán. Nếu không toán tử chỉ thỏa mãn tính chất kết hợp
+        \item Hàm (non MPI) cần có dạng:
+        \begin{itemize}
+            \item typedef void MPI\_User\_function (void *invec, void *inoutvec,
+                                                    int *len, MPI\_Datatype *type) 
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
 \begin{frame}{Reduction tất cả - tất cả và tổng tiền tố}
     \begin{itemize}
         \item Reduction tất cả - tất cả: mỗi tiến trình nhận được một bản sao của kết quả
@@ -1833,5 +1868,185 @@ else { // tiến trình chẵn nhận trước, gửi sau
         \includegraphics[height=0.35\textheight]{figures/MPI/Alltoall.png}
         \caption{Minh họa hàm MPI\_Alltoall}
     \end{figure}
+\end{frame}
+
+\subsection{Phân nhóm các tiến trình}
+
+\begin{frame}{Tách bộ giao tiếp}
+    \begin{itemize}
+        \item Hữu ích khi phân hoạch bộ giao tiếp cho các tập con tiến trình
+        \item MPI cũng cung cấp cơ chế giúp phân hoạch thành các nhóm tiến trình
+        \item int MPI\_Comm\_split(MPI\_Comm comm, int color, int key,
+                                   MPI\_Comm *newcomm)
+        \begin{itemize}
+            \item Phân nhóm dữ liệu bằng màu sắc
+            \item Sắp xếp các nhóm bởi key
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Tách bộ giao tiếp}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/MPI/Split_Communicator.png}
+        \caption{Sử dụng MPI\_Comm\_split để tách nhóm các tiến trình trong một bộ giao tiếp thành các nhóm nhỏ}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Topology của các tiến trình}
+    \begin{itemize}
+        \item Các tiến trình trong MPI\_COMM\_WORLD có thể được sắp xếp có dạng:
+        \begin{itemize}
+            \item Mắt lưới ô vuông nhiều chiều
+            \item Dạng đồ thị
+        \end{itemize}
+        \begin{figure}[H]
+            \centering
+            \includegraphics[height=0.3\textheight]{figures/MPI/Topology.png}
+        \end{figure}
+        \item Topology được xác định bởi chương trình, topology của máy vật lý
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Topology theo tọa độ Decartes}
+    \begin{itemize}
+        \item Đối với các bài toán thông thường một tổ chức các tiến trình sử dụng mắt lưới ô vuông thường khá tự nhiên.
+        \item Tạo một bộ giao tiếp với góc nhìn một ô lưới:
+        \begin{itemize}
+            \item int MPI\_Cart\_create(MPI\_Comm comm\_old, int ndims,
+                                      int *dims, int *periods, int reorder,
+                                      MPI\_Comm *comm\_cart)
+            \item ndims: số chiều của ô lưới
+            \item dims: vector là độ dài của từng chiều
+            \item periods: vector biểu diễn chu kỳ của từng chiều
+            \item reorder: float cho biết rank có thể thay đổi không
+        \end{itemize}
+        \item Tọa độ của tiến trình trong topology Decartes là vector ndims chiều
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Topology theo tọa độ Decartes}
+    \begin{itemize}
+        \item Việc truyền, nhận thông điệp vẫn cần rank 1 chiều
+        \item Ánh xạ tọa độ trên tọa độ Decarted $\Leftrightarrow$ rank:
+        \begin{itemize}
+            \item int MPI\_Cart\_coord(MPI\_Comm comm\_cart, int rank, int maxdims,
+                                      int *coords) 
+            \item int MPI\_Cart\_rank(MPI\_Comm comm\_cart, int *coords, int *rank) 
+        \end{itemize}
+        \item Phép toán hay được thực hiện trên topology Decarted nhất là phép dịch
+        \item Xác định rank của tiến trình nguồn và tiến trình đích của một shift:
+        \begin{itemize}
+            \item int MPI\_Cart\_shift(MPI\_Comm comm\_cart, int dir, int s\_step,
+                                       int *rank\_source, int *rank\_dest)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Topology theo tọa độ Decartes}
+    \begin{verbatim}
+int rank, size;
+int dims[2] = {4, 4};  // Kích thước từng chiều
+int periods[2] = {1, 0};  // Chu kỳ từng chiều
+int coords[2];  // Tọa độ của tiến trình hiện tại trên ô lưới
+int left, right, up, down;  // Các láng giềng trên ô lưới
+...
+MPI_Comm cart_comm;
+MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &cart_comm);
+MPI_Cart_coords(cart_comm, rank, 2, coords);
+MPI_Cart_shift(cart_comm, 0, 1, &left, &right);
+MPI_Cart_shift(cart_comm, 1, 1, &up, &down); 
+printf("Rank %d: Coordinates (%d, %d), 
+        neighbors (left: %d, right: %d, up: %d, down: %d)\n",
+        rank, coords[0], coords[1], left, right, up, down); 
+MPI_Comm_free(&cart_comm);
+MPI_Finalize();
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Chia topology Decartes}
+    \begin{itemize}
+        \item Các tiến trình được sắp xếp trên một ô lưới ảo sử dụng topology Decartes
+        \item Đôi khi ta muốn hạn chế giao tiếp các tiến trình trên một tập hợp con của lưới.
+        \item Chia topology Decartes thành các ô lưới có số chiều nhỏ hơn
+        \begin{itemize}
+            \item int MPI\_Cart\_sub(MPI\_Comm comm\_cart, int *keep\_dims,
+                                     MPI\_Comm *comm\_subcart) 
+        \end{itemize}
+        \item Nếu keep\_dims[i] là true:
+        \begin{itemize}
+            \item Chiều thứ i được giữ lại trong topology nhỏ mới
+        \end{itemize}
+        \item Xử lý tọa độ trong topology nhỏ:
+        \begin{itemize}
+            \item Xuất phát từ tọa độ trong topology ban đầu
+            \item Bỏ qua tọa độ cho các chiều đã bị loại bỏ
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Chia topology Decartes}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.6\textheight]{figures/MPI/Cartesion_sub.png}
+        \caption{Ví dụ chia topology Decartes}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Topology đồ thị}
+    \begin{itemize}
+        \item Một số bài toán không thường gặp, việc tổ chức các tiến trình trên một đồ thị phù hợp:
+        \begin{itemize}
+            \item int MPI\_Graph\_create(MPI\_Comm comm\_old, int nnodes,
+                                         int *index, int *edges,
+                                         int reorder, MPI\_Comm *cgraph)           
+        \end{itemize}
+        \item nnodes: số đỉnh trong đồ thị (số tiến trình)
+        \item index: vector các số nguyên biểu diễn bậc của các đỉnh
+        \item edges: vector các số nguyên dạng danh sách kề
+        \item reorder: float cho biết rank có thể thay đổi không
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.3\textheight]{figures/MPI/Graph_Example.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Topology đồ thị}
+    \begin{verbatim}
+int rank, size;
+int nnodes = 4;
+int index[4] = {2, 2, 2, 2};
+int edges[8] = {1, 3, 0, 2, 2, 0, 3, 1};
+MPI_Comm comm_graph;
+...
+MPI_Graph_create(MPI_COMM_WORLD, nnodes, index, edges, 
+                 0, &comm_graph);
+int graph_rank, graph_size;
+MPI_Comm_rank(comm_graph, &graph_rank);
+MPI_Comm_size(comm_graph, &graph_size);
+printf("Process %d (global rank) / %d (graph rank) 
+        out of %d (global size) / %d (graph size)\n",
+       rank, graph_rank, size, graph_size);
+MPI_Comm_free(&comm_graph);
+MPI_Finalize();
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Topology đồ thị}
+    \begin{itemize}
+        \item Truy vấn số đỉnh và vector cạnh
+        \begin{itemize}
+            \item int MPI\_Graphdims\_get(MPI\_Comm comm, int *nnodes,
+                                         int *nedges)
+        \end{itemize}
+        \item Đọc cấu trúc danh sách kề qua index và edges
+        \begin{itemize}
+            \item int MPI\_Graph\_get(MPI\_Comm comm, int maxindex,
+                                      int maxedges, int *index,
+                                      int *edges)
+        \end{itemize}
+    \end{itemize}
 \end{frame}
 \end{document}
