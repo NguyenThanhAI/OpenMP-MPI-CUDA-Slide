@@ -1801,4 +1801,37 @@ else { // tiến trình chẵn nhận trước, gửi sau
         \caption{Minh họa hai hàm MPI\_Scatter/MPI\_Gather}
     \end{figure}
 \end{frame}
+
+\begin{frame}{Hàm MPI\_Allgather}
+    \begin{itemize}
+        \item Giống như hàm MPI\_Gather nhưng không truyền tới một tiến trình duy nhất mà gửi các bản sao kết quả tới tất cả các tiến trình
+        \item int MPI\_AllGather(void *sendbuf, int sendcount,
+                                MPI\_Datatype senddatatype, void *recvbuf,
+                                int recvcount, MPI\_Datatype recvdatatype,
+                                MPI\_Comm comm)
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.45\textheight]{figures/MPI/Allgather.png}
+        \caption{Minh họa hàm MPI\_Allgather}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Truyền thông tất cả - tất cả}
+    \begin{itemize}
+        \item Mỗi tiến trình có một tập các block dữ liệu
+        \item Mỗi tiến trình truyền kiểu scatter đến các tiến trihf còn lại
+        \item Kết quả tương đương với chuyển vị ma trận
+        \item int MPI\_Alltoall(void *sendbuf, int sendcount,
+                                MPI\_Datatype senddatatype, void *recvbuf,
+                                int recvcount, MPI\_Datatype recvdatatype,
+                                MPI\_Comm comm) 
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.35\textheight]{figures/MPI/Alltoall.png}
+        \caption{Minh họa hàm MPI\_Alltoall}
+    \end{figure}
+\end{frame}
 \end{document}
