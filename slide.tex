@@ -2049,4 +2049,95 @@ MPI_Finalize();
         \end{itemize}
     \end{itemize}
 \end{frame}
+
+\subsection{Kiểu dữ liệu dẫn xuất trong trong MPI}
+
+\begin{frame}{Kiểu dữ liệu dẫn xuất trong trong MPI}
+    \begin{itemize}
+        \item Một kiểu dữ liệu tổng quát là một đối tượng xác định hai yếu tố:
+        \begin{itemize}
+            \item Một dãy các kiểu dữ liệu cơ bản 
+            \item Một dãy các số nguyên (số byte) là offset của các phần tử
+        \end{itemize}
+        \item Một số tính chất của kiểu dữ liệu tổng quát:
+        \begin{itemize}
+            \item Thứ tự của các phần tử không nhất thiết phải trùng với thứ tự của phần tử này trong bộ nhớ
+            \item Một phần tử có thể xuất hiện nhiều lần
+        \end{itemize}
+        \item Ánh xạ kiểu dữ liệu: một cặp kiểu dữ liệu và offset
+        \item Chữ ký kiểu dữ liệu: một dãy các kiểu dữ liệu cơ bản
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Xây dựng kiểu dữ liệu dẫn xuất trong MPI}
+    \begin{itemize}
+        \item int MPI\_Type\_struct(int count, int blocklens[],
+                                    MPI\_Aint indices[], MPI\_Datatype old\_types[],
+                                    MPI\_Datatype *newtype )
+        \item Nếu ta định nghĩa một kiểu dữ liệu có cấu trúc và muốn truyền nhận nhiều phần tử, ta đặt phần tử cuối cùng của mảng cấu trúc này là MPI\_UB.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Xây dựng kiểu dữ liệu dẫn xuất trong MPI}
+    \begin{verbatim}
+typedef struct {
+    int x;
+    int y;
+} Point;
+Point p;
+MPI_Datatype point_type;
+int block_lengths[2] = {1, 1};
+MPI_Aint displacements[2] = {0, sizeof(int)};
+MPI_Datatype types[2] = {MPI_INT, MPI_INT};
+MPI_Type_create_struct(2, block_lengths, displacements, 
+types, &point_type);
+MPI_Type_commit(&point_type);
+if (rank == 0) {
+    p.x = 10; p.y = 20;
+    MPI_Send(&p, 1, point_type, 1, 0, MPI_COMM_WORLD);
+} else if (rank == 1) {
+    MPI_Recv(&p, 1, point_type, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Kiểu dữ liệu dẫn xuất trong trong MPI}
+    \begin{itemize}
+        \item int MPI\_Type\_contiguous(int count, MPI\_Datatype oldtype,
+                                        MPI\_Datatype *newtype)
+        \item Tạo ra kiểu dữ liệu mới newtype thu được bằng cách ghép count bản sao của kiểu dữ liệu cũ oldtype
+       
+    \end{itemize}
+    \begin{verbatim}
+int count = 3;
+MPI_Datatype newtype;
+MPI_Type_contiguous(count, MPI_INT, &newtype);
+MPI_Type_commit(&newtype);
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Kiểu dữ liệu dẫn xuất trong trong MPI}
+    \begin{itemize}
+        \item int MPI\_Type\_vector(int count, int blocklength, int stride,
+                                    MPI\_Datatype oldtype,
+                                    MPI\_Datatype *newtype)
+    \end{itemize}
+
+    \begin{verbatim}
+int rows = 2;
+int cols = 3;
+int stride = cols + 1;  // Stride of 1 row + 1 column
+int data[rows][cols] = {{1, 2, 3}, {4, 5, 6}};
+MPI_Datatype newtype;
+MPI_Type_vector(rows, cols, stride, MPI_INT, &newtype);
+MPI_Type_commit(&newtype);
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{MPI Runtime}
+    
+\end{frame}
+
+\section{CUDA}
+
 \end{document}
