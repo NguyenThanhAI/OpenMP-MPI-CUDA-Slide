@@ -1412,6 +1412,8 @@ int main(int argc, char** argv) {
     \end{itemize}
 \end{frame}
 
+\subsection{Truyền thông điệp điểm - điểm trong MPI}
+
 \begin{frame}{Truyền thông điệp điểm - điểm}
     \begin{itemize}
         \item Giao tiếp blocking: Chờ đến khi truyền thông điệp hoàn thành
@@ -1590,8 +1592,213 @@ else { // tiến trình chẵn nhận trước, gửi sau
     \end{verbatim}
 \end{frame}
 
-\begin{frame}{Truyền thông điệp non-blocking trong MPI}
-    Một số hàm
+\begin{frame}{Truyền thông điệp hai chiều}
+    \begin{itemize}
+        \item Trong trường hợp hai tiến trình trao đổi thông điệp đồng thời hoặc một tiến trình đang gửi thông điệp khi đang nhận từ một tiến trình khác
+        \begin{itemize}
+            \item int MPI\_Sendrecv(void *sendbuf, int sendcount,
+                                    MPI\_Datatype senddatatype, int dest, int sendtag,
+                                    void *recvbuf, int recvcount, MPI\_Datatype recvdatatype,
+                                    int source, int recvtag, MPI\_Comm comm,
+                                    MPI\_Status *status)
+            \item int MPI\_Sendrecv\_replace(void *buf, int count,
+                                             MPI\_Datatype datatype, int dest, int sendtag,
+                                             int source, int recvtag, MPI\_Comm comm,
+                                             MPI\_Status *status)
+        \end{itemize}
+        \item MPI\_Sendrecv rất hữu dụng khi truyền tin lần lượt trong một vòng tròn khép kín và tránh được deadlock mà không cần dùng phương pháp chẵn, lẻ.
+        MPI sẽ tự động xử ý vấn đề này
+    \end{itemize}
 \end{frame}
 
+\begin{frame}{Truyền thông điệp non-blocking trong MPI}
+    \begin{itemize}
+        \item Các hàm gửi và truyền thông điệp non-blocking trả về trước khi quá trình giao tiếp hoàn tất 
+        \begin{itemize}
+            \item int MPI\_Isend(void *buf, int count, MPI\_Datatype datatype,
+                                int dest, int tag, MPI\_Comm comm,
+                                MPI\_Request *request) 
+            \item int MPI\_Irecv(void *buf, int count, MPI\_Datatype datatype,
+                                   int source, int tag, MPI\_Comm comm,
+                                   MPI\_Request *request)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp non-blocking trong MPI}
+    \begin{itemize}
+        \item MPI\_Test: Kiểm tra xem một quá trình giao tiếp đã kết thúc chưa
+        \begin{itemize}
+            \item int MPI\_Test(MPI\_Request *request, int *flag,
+                                MPI\_Status *status) 
+        \end{itemize}
+        \item MPI\_Waitany: chờ đến khi ít nhất một trong các truyền thông trong tập hoàn thành
+        \begin{itemize}
+            \item int MPI\_Waitany(int req\_cnt, MPI\_Request *req\_array,
+                                   int *req\_index, MPI\_Status *status) 
+        \end{itemize}
+        \item MPI\_Wait: chờ đến khi một truyền thông cụ thể hoàn Tất
+        \begin{itemize}
+            \item int MPI\_Wait(MPI\_Request *request, MPI\_Status *status)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\subsection{Truyền thông điệp quảng bá trong MPI}
+
+\begin{frame}{Truyền thông điệp quảng bá}
+    \begin{itemize}
+        \item Truyền thông quảng bá là truyền thông giữa một nhóm các tiến trình
+        \item Tất cả các bộ đệm bên nhận có cùng kích thước và khác với bộ đệm nhận 
+        \item Việc truyền thông điệp có thể là một - tất cả, tất cả - một, tất cả - tất cả.
+        \item Nhiều hàm có biến thể dạng vector có tên hàm dạng MPI\_xxxxv
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Hàm đồng bộ}
+    \begin{itemize}
+        \item MPI\_Barrier(MPI\_Comm comm)
+        \item Đợi tất cả các tiến trình tiến tới barrier
+        \item Chi phí lớn khi số tiến trình nhiều, chỉ sử dụng khi thực sự cần
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Truyền thông điệp một - tất cả}
+    \begin{itemize}
+        \item int MPI\_Bcast(void *buf, int count,
+                             MPI\_Datatype datatype, int source,
+                             MPI\_Comm comm)
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.5\textheight]{figures/MPI/Bcast.png}
+        \caption{Minh họa hàm Bcast}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Hàm reduce tất cả - một}
+    \begin{itemize}
+        \item int MPI\_Reduce(void *sendbuf, void *recvbuf,
+                             int count, MPI\_Datatype datatype,
+                             MPI\_Op op, int target, MPI\_Comm comm)
+        \item Ví dụ MPI\_Op: tổng, tích, min, max
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.5\textheight]{figures/MPI/Reduction_All_To_One.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Hàm reduce tất cả - một}
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{lll}
+            \hline
+            Toán tử & Ý nghĩa & Kiểu dữ liệu \\
+            \hline
+            MPI\_MAX & Maximum & Các điểm số nguyên và số thực \\
+            MPI\_MIN & Minimum & Các điểm số nguyên và số thực \\
+            MPI\_SUM & Tổng & Các điểm số nguyên và số thực \\
+            MPI\_PROD & Tích & Các điểm số nguyên và số thực \\
+            MPI\_LAND & Logical AND & Số nguyên \\
+            MPI\_BAND & Bit-wise AND & Số nguyên và byte \\
+            MPI\_LOR & Logical OR & Số nguyên \\
+            MPI\_BOR & Bit-wise OR & Số nguyên và byte \\
+            MPI\_LXOR & Logical XOR & Số nguyên \\
+            MPI\_BXOR & Bit-wise XOR & Số nguyên và byte \\
+            MPI\_MAXLOC & Giá trị lớn nhất và vị trí tương ứng & Các cặp dữ liệu \\
+            MPI\_MINLOC & Giá trị nhỏ nhất và vị trí tương ứng & Các cặp dữ liệu \\
+            \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Toán tử MPI\_MINLOC và MPI\_MAXLOC}
+    \begin{itemize}
+        \item MPI\_MAXLOC:
+        \begin{itemize}
+            \item Kết hợp từng cặp dữ liệu ($v_i, l_i$)
+            \item Trả về cặp ($v, l$) sao cho:
+            \begin{itemize}
+                \item v là giá trị lớn nhất trong các điểm $v_i$
+                \item l là vị trí tương ứng của v
+            \end{itemize}
+        \end{itemize}
+        \item MPI\_MINLOC tương tự
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Kiểu dữ liệu cho MPI\_MINLOC và MPI\_MAXLOC}
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{ll}
+            \hline
+            Kiểu dữ liệu MPI & Kiểu dữ liệu C \\
+            \hline
+            MPI\_2INT & 2 số nguyên \\
+            MPI\_SHORT\_INT & short và int \\
+            MPI\_LONG\_INT & long và int \\
+            MPI\_LONG\_DOUBLE\_INT & long double và int \\
+            MPI\_FLOAT\_INT & float và int \\
+            MPI\_DOUBLE\_INT & double và int \\
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Reduction tất cả - tất cả và tổng tiền tố}
+    \begin{itemize}
+        \item Reduction tất cả - tất cả: mỗi tiến trình nhận được một bản sao của kết quả
+        \begin{itemize}
+            \item int MPI\_Allreduce(void *sendbuf, void *recvbuf,
+                                    int count, MPI\_Datatype datatype,
+                                    MPI\_Op op, MPI\_Comm comm)
+
+           \item Tương đương với hai hàm MPI\_Reduce + MPI\_Bcast
+        \end{itemize}
+        \item Các phép toán tiền tốc
+        \begin{itemize}
+            \item inclusive scan: kết quả ở tiến trình i = op($v_0, ... v_i$) 
+            \item int MPI\_Scan(void *sendbuf, void *recvbuf, int count,
+                               MPI\_Datatype datatype, MPI\_Op op,
+                               MPI\_Comm comm)
+            \item exclusive scan: kết quả ở tiến trình i = op($v_0, ... v_{i-1}$) 
+            \item int MPI\_Exscan(void *sendbuf, void *recvbuf, int count,
+                                  MPI\_Datatype datatype, MPI\_Op op,
+                                  MPI\_Comm comm)
+           
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI\_Scatter}
+    \begin{itemize}
+        \item Chia dữ liệu thành p blocks và truyền p-1 blocks từ tiến trình 0 sang các tiến trình còn lại (mỗi tiến trình 1 block)
+        \item int MPI\_Scatter(void *sendbuf, int sendcount,
+                               MPI\_Datatype senddatatype, void *recvbuf,
+                               int recvcount, MPI\_Datatype recvdatatype,
+                               int source, MPI\_Comm comm) 
+        \item sendcount là số phần tử được gửi tới từng tiến trình (số phần tử trong 1 block)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI\_Gather}
+    \begin{itemize}
+        \item Tập hợp dữ liệu về một tiến trình
+        \item int MPI\_Gather(void *sendbuf, int sendcount,
+                             MPI\_Datatype senddatatype, void *recvbuf,
+                             int recvcount, MPI\_Datatype recvdatatype,
+                             int target, MPI\_Comm comm)
+        \item sendcount là số phần tử được gửi từ các tiến trình
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI\_Scatter/MPI\_Gather}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/MPI/Scatter_Gather.png}
+        \caption{Minh họa hai hàm MPI\_Scatter/MPI\_Gather}
+    \end{figure}
+\end{frame}
 \end{document}
