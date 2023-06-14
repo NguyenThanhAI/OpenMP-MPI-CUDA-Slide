@@ -1715,24 +1715,26 @@ MPI_Finalize();
 \begin{frame}{Hàm reduce tất cả - một}
     \begin{table}[H]
         \centering
-        \begin{tabular}{lll}
-            \hline
-            Toán tử & Ý nghĩa & Kiểu dữ liệu \\
-            \hline
-            MPI\_MAX & Maximum & Các điểm số nguyên và số thực \\
-            MPI\_MIN & Minimum & Các điểm số nguyên và số thực \\
-            MPI\_SUM & Tổng & Các điểm số nguyên và số thực \\
-            MPI\_PROD & Tích & Các điểm số nguyên và số thực \\
-            MPI\_LAND & Logical AND & Số nguyên \\
-            MPI\_BAND & Bit-wise AND & Số nguyên và byte \\
-            MPI\_LOR & Logical OR & Số nguyên \\
-            MPI\_BOR & Bit-wise OR & Số nguyên và byte \\
-            MPI\_LXOR & Logical XOR & Số nguyên \\
-            MPI\_BXOR & Bit-wise XOR & Số nguyên và byte \\
-            MPI\_MAXLOC & Giá trị lớn nhất và vị trí tương ứng & Các cặp dữ liệu \\
-            MPI\_MINLOC & Giá trị nhỏ nhất và vị trí tương ứng & Các cặp dữ liệu \\
-            \hline
-        \end{tabular}
+        \resizebox{\columnwidth}{!}{
+            \begin{tabular}{lll}
+                \hline
+                Toán tử & Ý nghĩa & Kiểu dữ liệu \\
+                \hline
+                MPI\_MAX & Maximum & Các điểm số nguyên và số thực \\
+                MPI\_MIN & Minimum & Các điểm số nguyên và số thực \\
+                MPI\_SUM & Tổng & Các điểm số nguyên và số thực \\
+                MPI\_PROD & Tích & Các điểm số nguyên và số thực \\
+                MPI\_LAND & Logical AND & Số nguyên \\
+                MPI\_BAND & Bit-wise AND & Số nguyên và byte \\
+                MPI\_LOR & Logical OR & Số nguyên \\
+                MPI\_BOR & Bit-wise OR & Số nguyên và byte \\
+                MPI\_LXOR & Logical XOR & Số nguyên \\
+                MPI\_BXOR & Bit-wise XOR & Số nguyên và byte \\
+                MPI\_MAXLOC & Giá trị lớn nhất và vị trí tương ứng & Các cặp dữ liệu \\
+                MPI\_MINLOC & Giá trị nhỏ nhất và vị trí tương ứng & Các cặp dữ liệu \\
+                \hline
+            \end{tabular}
+        }
     \end{table}
 \end{frame}
 
@@ -2139,5 +2141,413 @@ MPI_Type_commit(&newtype);
 \end{frame}
 
 \section{CUDA}
+
+\subsection{Tổng quan kiến trúc GPU}
+
+\begin{frame}{Định luật Moore}
+    \begin{itemize}
+        \item Số bóng bán dẫn trên một vi mạch sẽ tăng gấp đôi sau mỗi hai năm
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.7\textheight]{figures/CUDA/Moore_Law.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Định luật Moore}
+    \begin{itemize}
+        \item Khả năng tích hợp bóng bán dẫn trên một vi mạch dần bị bão hòa
+        \item Vi xử lý gần như không thể nhanh hơn
+        \item Phát triển theo hướng song song
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các hệ thống siêu máy tính dùng CPU}
+    \begin{itemize}
+        \item Chi phí đắt
+        \item Kích thước lớn
+        \item Chỉ có thể hoạt động tin cậy sau khi chạy chương trình vài giờ
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Graphic Processing Units (GPU)}
+    \begin{itemize}
+        \item GPU (Graphical Processing Unit) là một loại phần cứng được thiết kế chuyên dụng cho các ứng dụng tính toán song song (đồ họa)
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.7\textheight]{figures/CUDA/GFLOP_Trend.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Graphic Processing Units (GPU)}
+    \begin{itemize}
+        \item Tốc độ xử lý nhanh cần có băng thông lớn
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.7\textheight]{figures/CUDA/Bandwidth.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Thiết kế CPU và GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.7\textheight]{figures/CUDA/CPUvsGPU_design.png}
+        caption{So sánh thiết kế CPU và GPU}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Tính toán trên GPU}
+    \begin{itemize}
+        \item Ban đầu, GPU chỉ phục vụ cho việc tính toán ứng dụng liên quan đến đồ họa
+        \item GPU dần cũng được sử dụng cho các ứng dụng xử lý ảnh
+        \item Dần được phục vụ cho các tác vụ tính toán nói chung khi dữ liệu có thể chia tách và xử lý song song
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Kết nối CPU và GPU}
+    \begin{itemize}
+        \item GPU được kết nối với CPU qua một bus tốc độ cao (PCI Express)
+    \end{itemize}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.35\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/Mainboard.png}
+                \caption{Sơ đồ của mainboard}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.65\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/PCIe.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Thiết kế của GPU}
+    \begin{itemize}
+        \item GPU gồm rất nhiều lõi, mỗi lõi được gọi là stream processor.
+        \item Các stream processors được chia thành các nhóm được gọi là Stream Multiprocessors (SMs)
+        \item SMs cơ bản là một bộ xử lý SIMD
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.5\textheight]{figures/CUDA/SIMD.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Thiết kế của GPU}
+    \begin{itemize}
+        \item GPU bao gồm nhiều lõi đơn giản
+        \item Được thiết kế cho nhiều tác vụ đơn giản: thông lượng dữ liệu cao
+        \item Ít control units: giảm độ trễ (latency)
+    \end{itemize}
+\end{frame}
+
+\subsection{Computing Unified Device Architecture (CUDA)}
+
+\begin{frame}{Computer Unified Device Architecture (CUDA)}
+    \begin{itemize}
+        \item Là kiến trúc và mô thức lập trình
+        \item Kiến trúc và mô hình thực things
+        \begin{itemize}
+            \item Được NVIDIA giới thiệu vào năm 2006
+            \item Để có hiệu năng chương trình cao nhất yêu cầu cần hiểu kiến trúc phần cứng
+        \end{itemize}
+        \item Mô thức lập trình:
+        \begin{itemize}
+            \item Một tập nhỏ mở rộng của C
+            \item Cho phép GPU thực thi chương trình được viết bằng C
+            \item Trong chương trình C, gọi hàm SIMD"kernel" được thực thi trên GPU
+        \end{itemize}
+        \item Cần phải quản lý bộ nhớ GPU tương đối thủ công
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{CUDA}
+    \begin{itemize}
+        \item Một số thuật ngữ trong CUDA:
+        \begin{itemize}
+            \item Host: CPU và bộ nhớ của CPU (host memory)
+            \item Device: GPU và bộ nhớ của GPU (device memory)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các bước chính trong một chương trình CUDA}
+    \begin{enumerate}
+        \item Cấp phát và khởi tạo các biến trên host và device
+        \item Chuyển dữ liệu từ host sang device
+        \item Thực hiện tính toán trên device
+        \item Chuyển kết quả từ device sang host
+        \item Giải phóng các vùng nhớ đã được cấp phát trên host và device
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Biên dịch và chạy chương trình CUDA}
+    \begin{itemize}
+        \item Phải cài CUDA SDK và NVIDIA Graphic Driver
+        \item Dùng trình biên dịch NVIDA: nvcc
+    \end{itemize}
+    \begin{verbatim}
+__global__ void hellokernel() {
+    printf(”Hello World!\n”);
+}
+int main(void){
+    int num_threads = 1;
+    int num_blocks = 1;
+    hellokernel<<<num_blocks,num_threads>>>();
+    cudaDeviceSynchronize();
+    return 0;
+}
+    \end{verbatim}
+    \begin{verbatim}
+nvcc hello.cu -o a.out && ./a.out
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\linewidth]{figures/CUDA/Execution_Model.png}
+        \caption{Trình tự thực thi chương trình CUDA}
+    \end{figure}
+\end{frame}
+
+\subsection{Tổ chức phân cấp luồng trong CUDA}
+
+\begin{frame}{Luồng trong CUDA}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Các luồng được phân nhóm thành các thread blocks:
+                \begin{itemize}
+                    \item Tất cả các luồng trong một thread block chạy trên một một SMs
+                    \item Các luồng trong cùng một block có thể giao tiếp
+                    \item Cho phép xử lý hiệu quả trê dữ liệu 1-D, 2-D, 3-D
+                \end{itemize}
+                \item Nhiều thread block tạo nên một grid
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[height=0.8\textheight]{figures/CUDA/Thread_Hierachy.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Luồng trong CUDA}
+    \begin{itemize}
+        \item CUDA ảo hóa phần cứng vật lý
+        \begin{itemize}
+            \item Luồng là một bộ xử lý số vô hướng ảo hóa
+            \item Các thread block là một bộ đa xử lý ảo hóa
+        \end{itemize}
+        \item Các thread block độc lập với nhau, không liên quan đến thứ tự
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Luồng trong CUDA}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Cung cấp tính năng tự động mở rộng trong GPU
+                \begin{itemize}
+                    \item Phân cấp luồng
+                    \item Bộ nhớ chia sẻ
+                    \item Đồng bộ luồng
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/Multithread_SM.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Luồng trong CUDA}
+    \begin{itemize}
+        \item Mỗi luồng có một ID riêng tạo nên từ tổ hợp gồm blockID và threadID
+        \item Ta có thể tính toán dữ liệu trên các phần khác nhau của dữ liệu
+        \item SIMT: Single Instruction Multiple threads
+        \item Threads: 1D, 2D, 3D
+        \item Blocks: 1D, 2D
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{CUDA - Mở rộng của C}
+    \begin{itemize}
+        \item Khai báo hàm:
+        \begin{itemize}
+            \item \_\_global\_\_ void kernel();
+            \item \_\_device\_\_ float function();
+        \end{itemize}
+        \item Hạn định biến:
+        \begin{itemize}
+            \item \_\_shared\_\_ float array[5];
+            \item \_\_constant\_\_ float array[5];
+        \end{itemize}
+        \item Cấu hình kernel:
+        \begin{itemize}
+            \item dim3 dim\_grid(100, 100); // 10000 blocks
+            \item dim3 dim\_block(16, 16); // 256 threads per block in 2D
+            \item kernel<<<dim\_grid, dim\_block>>>(); // Launch kernel
+        \end{itemize}
+        \item Các biến built-in: threadIdx.x, blockIdx.x
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{CUDA - Mở rộng của C}
+    \begin{itemize}
+        \item Từ khóa CUDA C/C++: \_\_global\_\_ biểu thị một hàm:
+        \begin{itemize}
+            \item Chạy trên device 
+            \item Được gọi từ host code
+        \end{itemize}
+        \item Cặp 3 dấu ngoặc nhọn đánh dấu lời gọi từ host sang device:
+        \begin{itemize}
+            \item Còn được gọi là "kernel launch"
+            \item Các tham số trong < < <...>>> là cấu hình các thread
+        \end{itemize}
+        \item nvcc chia code thành code của host và device:
+        \begin{itemize}
+            \item Hàm trên device (hellokernel()) được xử lý bởi trình biên dịch của NVIDIA
+            \item Hàm host (main()) được xử lý bởi trình biên dịch tiêu chuẩn (gcc, cl.exe)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\subsection{Mô hình thực thi trên GPU}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    
+\end{frame}
+
+\subsection{Điều khiển GPU}
+
+\begin{frame}[fragile]{Điều khiển GPU}
+    \begin{itemize}
+        \item CUDA kernal:
+        \begin{itemize}
+            \item Định nghĩa tác vụ được thực thi bởi một luồng đơn trên GPU
+            \item Cách viết tương tự như cách viết hàm trên CPU
+            \item Cú pháp của một kernel cũng tương tự một hàm trên C/C++ nhưng thêm:
+            \begin{verbatim}
+__global__ void kernel(...) {
+    ...
+}
+            \end{verbatim}
+            \item Mọi luồng CUDA thực thi cùng một kernel (SIMT)
+            \item Ban đầu, điểm khác biệt duy nhất giữa các luồng là tọa độ của luồng
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Phân cấp luồng trong CUDA 
+        \begin{itemize}
+            \item Warp: Một group SIMT
+            \item Thread block: một vài nhóm SIMT chạy đồng thời trên một SMs
+            \item Grid: tất cả các thread block được tạo bởi cùng kernel launch
+        \end{itemize}
+        \item Launch một kernel tương tự như gọi hàm:
+        \begin{itemize}
+            \item Tên kernel và các tham Số
+            \item Số thread block trên một grid và và số thread trên một block được tạo ra:
+            \begin{verbatim}
+kernel<<<nblocks, threads_per_block>>>(arg1, arg2, ...);                
+            \end{verbatim}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Các luồng của GPU có thể cấu hình 1-D, 2-D, 3-D
+        \item Block và Grid đều 1 chiều:
+    \end{itemize}
+    \begin{verbatim}
+int nblocks = 4;
+int threads_per_block = 8;
+kernel<<<nblocks, threads_per_block>>>(...);
+    \end{verbatim}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/1d_Grid_Block.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Block và Grid đều 2 chiều:
+    \end{itemize}
+    \begin{verbatim}
+dim3 nblocks(2,2);
+int threads_per_block = 8;
+kernel<<<nblocks, threads_per_block>>>(...);
+    \end{verbatim}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.5\textheight]{figures/CUDA/2d_Grid_Block.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Block 1 chiều và Grid 2 chiều:
+    \end{itemize}
+
+    \begin{verbatim}
+dim3 nblocks(2,2);
+int threads_per_block = 8;
+kernel<<<nblocks, threads_per_block>>>(...);
+    \end{verbatim}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/2d_1d_Grid_Block.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Trên GPU, số block và thread trên một block được hiển thị qua các biến tọa độ luồng:
+        \begin{itemize}
+            \item Kích thước Chiều
+            \item IDs
+        \end{itemize}
+        \begin{table}[H]
+            \centering
+            \resizebox{\columnwidth}{!} {
+                \begin{tabular}{|l|l|}
+                    \hline
+                    Tên biến & Ý nghĩa \\
+                    \hline
+                    gridDim.x, gridDim.y, gridDim.z & Số block theo từng trục trong kernel launch \\
+                    \hline
+                    blockIdx.x, blockIdx.y, blockIdx.z & ID của block đang chứa thread hiện tại \\
+                    \hline
+                    blockDim.x, blockDim.y, blockDim.z & Số luồng trong một block \\
+                    \hline
+                    threadIdx.x, threadIdx.y, threadIx.z & ID của luồng hiện tại trong block chứa luồng này \\
+                    \hline
+                \end{tabular}
+            }
+        \end{table}
+    \end{itemize}
+
+\end{frame}
 
 \end{document}
