@@ -2550,4 +2550,244 @@ kernel<<<nblocks, threads_per_block>>>(...);
 
 \end{frame}
 
+
+\begin{frame}{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Để tính ID toàn cục của một luồng trên GPU trong một grid 1 chiều và block 1 chiều:
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.6\textheight]{figures/CUDA/Global_ThreadID_1d_Grid_1d_Block.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Tổ chức luồng trong GPU}
+    \begin{itemize}
+        \item Xác định tọa độ luồng có thể giúp phân nhánh code
+        \item Các luồng tại các nhánh khác nhau không thể thực hiện song song
+    \end{itemize}
+    \begin{verbatim}
+__global__ void kernel(int *arr) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < 32) {
+        arr[tid] = f(arr[tid]);
+    } else {
+        arr[tid] = g(arr[tid]);
+    }
+}
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Quản lý bộ nhớ GPU}
+    \begin{itemize}
+        \item API quản lý bộ nhớ CUDA:
+        \begin{itemize}
+            \item Cấp phát bộ nhớ trên GPU
+            \item Truyền dữ liệu từ bộ nhớ host sang bộ nhớ GPU
+            \item Giải phóng bộ nhớ GPU
+        \end{itemize}
+    \end{itemize}
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{|c|c|}
+            \hline
+            Host function & Hàm tương đương ở CUDA \\
+            \hline
+            malloc & cudaMalloc \\
+            \hline
+            memcpy & cudaMemcpy \\
+            \hline
+            free & cudaFree \\
+            \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Quản lý bộ nhớ GPU}
+    \begin{itemize}
+        \item cudaError\_t cudaMalloc(void **devPtr, size\_t size);
+        \begin{itemize}
+            \item Cấp phát size byte trên bộ nhớ GPU và lưu địa chỉ ở con trở *devPtr
+        \end{itemize}
+        \item cudaError\_t cudaFree(void *devPtr);
+        \begin{itemize}
+            \item Giải phóng bộ nhớ của GPU đã được cấp phát lưu địa chỉ tại devPtr.
+            \item Phải là vùng nhớ đã được cấp phát sử dụng cudaMalloc
+        \end{itemize}
+        
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Quản lý bộ nhớ GPU}
+    \begin{itemize}
+        \item cudaError\_t cudaMemcpy(void *dst, const void *src, size\_t count,
+                                      enum cudaMemcpyKind kind);
+
+        \begin{itemize}
+            \item Truyền count bytes từ vùng nhớ được trở bởi src sang vùng nhớ được trở bởi dst
+            \item Các kiểu truyền dữ liệu:
+            \begin{itemize}
+                \item cudaMemcpyHostToHost
+                \item cudaMemcpyHostToDevice
+                \item cudaMemcpyDeviceToHost
+                \item cudaMemcpyDeviceToDevice
+            \end{itemize}
+            \item Địa chỉ của các vùng nhớ trở bởi dst và src phải cùng kiểu, nếu loại truyền là cudaMemcpyHostToDevice thì src phải là một host array và dsst phải là một device array.
+        \end{itemize}
+    \end{itemize}
+    
+\end{frame}
+
+\begin{frame}[fragile]{Quản lý bộ nhớ GPU}
+    \begin{verbatim}
+void *d_arr, *h_arr;
+h_addr = ... ; /* Cấp phát bộ nhớ và khởi tạo dữ liệu trên host */
+// Cấp phát bộ nhớ trên GPU và địa chỉ ở d_arr
+cudaMalloc((void **)&d_arr, nbytes);
+// Truyền dữ liệu từ host sang device
+cudaMemcpy(d_arr, h_arr, nbytes,
+cudaMemcpyHostToDevice);
+// Tính toán trên GPU
+...
+// Truyền dữ liệu từ device sang host
+cudaMemcpy(h_arr, d_arr, nbytes,
+cudaMemcpyDeviceToHost);
+// Giải phóng bộ nhớ trên host và device
+free(h_arr);
+cudaFree(d_arr);
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Ví dụ chương trình}
+    \begin{itemize}
+        \item Tính $y=\alpha x + y$
+        \begin{itemize}
+            \item $x$ và $y$ là vector kích thước n
+            \item $\alpha$ là số vô hướng
+        \end{itemize}
+        \item Mỗi luồng đảm nhiệm một phần tử
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ví dụ chương trình}
+\begin{verbatim}
+__global__ void axpy(REAL *x, REAL *y, int n, REAL a) {
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id < n)
+        y[id] += a * x[id];
+}
+int main(int argc, char** argv) {
+    ...
+    cudaMalloc((void**)&d_x, size);
+    cudaMalloc((void**)&d_y, size);
+    cudaMemcpy(d_x, h_x, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, h_y, size, cudaMemcpyDeviceToHost);
+    int blockSize, gridSize;
+    blockSize = 1024;
+    gridSize = (int)ceil((float)n/blockSize);
+    axpy<<<gridSize, blockSize>>>(d_x, d_y, n, a);
+    cudaMemcpy(h_y, d_y, cudaMemcpyDeviceToHost);
+    cudaFree(d_x); cudaFree(d_y);
+    free(h_x); free(h_y);
+    return 0;
+}
+\end{verbatim}
+    
+\end{frame}
+
+\subsection{Tổ chức bộ nhớ}
+
+\begin{frame}{Sơ đồ bộ nhớ CPU}
+    \begin{itemize}
+        \item Bộ nhớ được cache từ bộ nhớ kích thước lớn, đỗ trẽ lớn sang bộ nhớ kích thước nhỏ, độ trễ nhỏ
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.6\textheight]{figures/CUDA/CPU_Memory_Hierachy.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{itemize}
+        \item Trên GPU, tổ chức bộ nhớ phức tạp hơn với nhiều không gian bộ nhớ
+        \item Một luồng có thể:
+        \begin{itemize}
+            \item Đọc/ghi thanh ghi gắn với từng luồng 
+            \item Đọc/ghi bộ nhớ cục bộ gắn với từng luồng 
+            \item Đọc/ghi bộ nhớ chia sẻ của từng block 
+            \item Đọc/ghi bộ nhớ toàn cục của từng grid 
+            \item Chỉ đọc bộ nhớ hằng của từng grid
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Các thanh ghi, bộ nhớ cục bộ, bộ nhớ chia sẻ thường sử dụng SRAM.
+                \item Bộ nhớ toàn cục, bộ nhớ hằng, bộ nhớ texture thường là DRAM
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/GPU_Memory_Hierachy.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Bộ nhớ toàn cục:
+                \begin{itemize}
+                    \item Bộ nhớ chính của GPU
+                    \item Giao tiếp với host
+                    \item Được chia sẻ bởi tất cả các luồng 
+                    \item Kích thước cỡ GB 
+                    \item Off chip, chậm (~400 chu kỳ)
+                    \item Khai báo dùng từ khóa \_\_ device \_\_ float variable; (là biến static)
+                    \item Được cấp phát động bởi cudaMalloc
+                    \item Được quản lý bởi lập trình viên
+                    \item Tối ưu cho các luồng trong một warp truy cập vào cell nhớ của các luồng lân cận
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/GPU_Global_Memory.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Bộ nhớ chia sẻ
+                \begin{itemize}
+                    \item Có cho từng SMs, là bộ nhớ vật lý L1 Cache
+                    \item Được chia sẻ bởi tất cả các luồng trong từng thread block
+                    \item Kích thước cỡ KB
+                    \item Độ trễ thấp, băng thông cao
+                    \item On chip, nhanh (~4 chu kỳ)
+                    \item Được cấp phát và quản lý bởi lập trình viên
+                    \item Được khai báo với từ khóa \_\_shared\_\_ float variable;
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/GPU_Shared_Memory.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
 \end{document}
