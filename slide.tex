@@ -2790,4 +2790,272 @@ int main(int argc, char** argv) {
         \end{column}
     \end{columns}
 \end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item GPU Caches (SRAM):
+                \item L1 cache on chip, có cho từng SMs 
+                \item L2 cache cho toàn bộ GPU, off chip, lưu giá trị cho toàn bộ SMs
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.7\linewidth]{figures/CUDA/GPU_Caches_Memory.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Thanh ghi (SRAM):
+                \begin{itemize}
+                    \item Riêng tư với từng luồng
+                    \item Có một tập các thanh ghi cố định cho từng SM và được chia ra cho từng luồng trong các thread block 
+                    \item Số lượng thanh ghi từng luồng phụ thuộc vào kiến trúc
+                    \item Số lượng thanh ghi mỗi lần chạy được ngầm điều khiển bởi trình biên dịch, lập trình viên không can thiệp
+                \end{itemize}
+                \item Bộ nhớ cục bộ:
+                \begin{itemize}
+                    \item Riêng tư với từng luồng
+                    \item Off chip, chậm
+                    \item Nếu các biến không đủ lưu trên thanh ghi, sẽ được lưu trên bộ nhớ cục bộ
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.7\linewidth]{figures/CUDA/GPU_Per_Thread_Memory.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Bộ nhớ hằng:
+                \begin{itemize}
+                    \item Chỉ đọc
+                    \item Off chip nhưng nhanh (do được cache)
+                    \item Lưu trữ trong bộ nhớ device
+                    \item Cache cho từng SMs 
+                    \item Tối ưu cho tất cả các luồng trong một warp truy cập vào cùng một ô nhớ
+                    \item Dung lượng chỉ khoảng vài chục kB 
+                    \item Khai báo với từ khóa: \_\_constant\_\_ float variable;
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.6\linewidth]{figures/CUDA/GPU_Constant_Memory.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{table}[H]
+        \centering
+        \resizebox{\columnwidth}{!}{
+            \begin{tabular}{|c|l|c|c|c|c|}
+                \hline
+                Bộ nhớ & On/Off chip & Cached & Truy cập & Phạm vi & Vòng đời \\
+                \hline
+                Thanh ghi & On & N/A & R/W & 1 luồng & Luồng \\
+                \hline
+                Bộ nhớ chia sẻ & On & N/A & R/W & Tất cả các luồng trong 1 block & Block \\
+                \hline
+                Bộ nhớ toàn cục & Off & N/A & R/W & Tất cả các luồng và host & Cấp phát do host \\
+                \hline
+                Bộ nhớ hằng & Off & Yes & R  & Tất cả các luồng và host & Cấp phát do host \\
+                \hline
+            \end{tabular}
+        }
+    \end{table}
+
+    \begin{table}[H]
+        \centering
+        \resizebox{\columnwidth}{!}{
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                Hạn định & Tên biến & Bộ nhớ & Phạm vi & Vòng đời \\
+                \hline
+                & float var & Thanh ghi & Luồng & Luồng \\
+                \hline
+                & float var[100] & Bộ nhớ cục bộ & Luồng & Luồng \\
+                \hline
+                \_\_shared\_\_ & float var & Bộ nhớ chia sẻ & Block & Block \\
+                \hline
+                \_\_device\_\_ & float var & Bộ nhớ toàn cụ & Toàn cục & Ứng dụng \\
+                \hline
+                \_\_constant\_\_ & float var & Bộ nhwos hằng & Toàn cục & Ứng dụng \\
+                \hline
+            \end{tabular}
+        }
+    \end{table}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{itemize}
+        \item Bộ nhớ toàn cục tĩnh có kích thước cố định trong toàn bộ thời gian thực thi của chương trình:
+        \begin{itemize}
+            \item \_\_device\_\_ float devData;
+            \item \_\_global\_\_ void checkGlobalVariable();
+        \end{itemize}
+        \item Khởi tạo sử dụng hàm cudaMemcpyToSymbol:
+        \begin{itemize}
+            \item cudaMemcpyToSymbol(devData, \&hostData, sizeof(float));
+        \end{itemize}
+        \item Đưa dữ liệu từ biến toàn cục tính trên device memory về host:
+        \begin{itemize}
+            \item cudaMemcpyFromSymbol(\&hostData, devData, sizeof(float));
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Tổ chức bộ nhớ GPU}
+    \begin{itemize}
+        \item Ta đã biết cách cấp phát động bộ nhớ toàn cục:
+        \begin{itemize}
+            \item cudaMalloc cấp phát động trên bộ nhớ toàn cục
+            \item cudaMemcpy truyền/nhận dữ liệu trên bộ nhớ toàn cục 
+            \item cudaFree giải phóng vùng nhớ được cấp phát động trên bộ nhớ toàn cục dùng cudaMalloc
+        \end{itemize}
+        \item cudaMemcpy hỗ trợ 4 kiểu truyền/nhận dữ liệu:
+        \begin{itemize}
+            \item cudaMemcpyHostToHost
+            \item cudaMemcpyHostToDevice
+            \item cudaMemcpyDeviceToHost
+            \item cudaMemcpyDeviceToDevice
+        \end{itemize}
+        \item Ta cũng có thể memset cho bộ nhớ toàn cục:
+        \begin{itemize}
+            \item cudaError\_t cudaMemset(void *devPtr, int value, size\_t count);
+            
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\subsection{Các mẫu truy cập bộ nhớ toàn cục}
+
+\begin{frame}{Đặc điểm truy cập bộ nhớ của GPU}
+    \begin{itemize}
+        \item Cache ở GPU là một bài toán khá khó khăn
+        \begin{itemize}
+            \item Hàng nghìn luồng cùng tham gia vào một bài toán
+            \item Rất khó để dự đoán ở bước tiếp theo luồng nào sẽ truy cập vào vùng nhớ nào 
+        \end{itemize}
+    \end{itemize}
+    
+    \begin{itemize}
+        \item Cho việc truy cập bộ nhớ toàn cục hiệu quả, GPU dựa vào:
+        \begin{itemize}
+            \item Băng thông device memory lớn
+            \item Các mẫu truy cập bộ nhớ được căn lề và liền mạch
+            \item Duy trì các tác vụ I/O phù hợp để giữa các bus bộ nhớ luôn được tận dụng tối đa và giảm độ trễ bộ nhớ toàn cục
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Đặc điểm truy cập bộ nhớ của GPU}
+    \begin{itemize}
+        \item Thực hiện truy cập bộ nhớ được căn lề và liền mạch là chìa khóa giúp tối ưu hóa băng thông sử dụng bộ nhớ toàn cục.
+        \begin{itemize}
+            \item Tính liền mạch: Các luồng trong một warp có thể tham chiếu đến một vùng nhớ có thể được sử dụng bởi một giao dịch bộ nhớ toàn cục duy nhất
+            \item Căn lề: Truy cập bộ nhớ toàn cục bằng các luồng trong cùng một warp mà hiệu địa chỉ của thread cuối và thread đầu là bội của kích thước của một giao dịch bộ nhớ toàn cục
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Đặc điểm truy cập bộ nhớ của GPU}
+    \begin{itemize}
+        \item Một giao dịch bộ nhớ toàn cục có thể gồm 32 hoặc 128 byte
+        \begin{itemize}
+            \item Kích thước của một giao dịch bộ nhớ phụ thuộc vào loại cache được truyền qua
+            \item Nếu L1 và L2: 128 byte
+            \item Chỉ L2: 32 byte
+            \item Loại cache mà giao dịch bộ nhớ đi qua phụ thuộc vào kiến trúc của GPU và loại truy cập (đọc/ghi)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ căn lề và liền mạch
+        \begin{itemize}
+            \item Warp gồm 32 luồng, giao dịch bộ nhớ 128 byte
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.7\linewidth]{figures/CUDA/Aligned_Coalesced_Global_Memory_Transaction.png}
+            \end{figure}
+            \item Với truy cập 128 byte, yêu cầu một giao dịch và tất cả các byte đã tải được sử dụng
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không căn lề và liền mạch (với L1 cache)
+        \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.7\linewidth]{figures/CUDA/Misaligned_Coalesced_Global_Memory_Transaction.png}
+        \end{figure}
+        \item Với truy cập 128 byte, yêu cầu hai truy cập bộ nhớ để tải tất cả các byte yêu cầu.
+        Chỉ một nửa số byte được tải được sử dụng
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không căn lề và không liền mạch (với L1 cache)
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.7\linewidth]{figures/CUDA/Misaligned_Uncoalesced_Global_Memory_Transaction.png}
+        \end{figure}
+        \item Với truy cập không liền mạch, rất nhiều byte và nhiều giao dịch cần để tải dữ liệu cần thiết
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không căn lề và không liền mạch (với L1 cache)
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.7\linewidth]{figures/CUDA/Misaligned_Uncoalesced_Global_Memory_Transaction_2.png}
+        \end{figure}
+        \item Một yếu tố cần xem xét với truy cập không liền mạch: khi độ hiệu quả của truy cập rất thấp, truy cập sẽ đưa nhiều dòng cache vào L1/L2 cache và được sử dụng ở các bước truy cập sau.
+        GPU linh hoạt để tối ưu các truy cập bộ nhớ, ngay cả khi ứng dụng thực hiện những mẫu truy cập không tối ưu
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không được cache trong L1 sử dụng giao dịch 32 byte
+        \begin{itemize}
+            \item Cải thiện tận dụng băng thông của bộ nhớ
+            \item Tuy nhiên, L2 cache có độ trễ lớn hơn L1 và vẫn khá nhỏ.
+            Vì vậy, nhiều ứng dụng vẫn bị vấn đề hiệu năng nếu L1 cache không được sử dụng khi đọc dữ liệu
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ căn lề và liền mạch
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.7\linewidth]{figures/CUDA/Aligned_Coalesced_Global_Memory_Transaction_2.png}
+        \end{figure}
+        \item Với giao dịch 32 byte, yêu cầu bốn giao dịch và tất cả các byte tải được sử dụng
+    \end{itemize}
+\end{frame}
 \end{document}
