@@ -3050,12 +3050,191 @@ int main(int argc, char** argv) {
 
 \begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
     \begin{itemize}
-        \item Truy cập bộ nhớ căn lề và liền mạch
+        \item Truy cập bộ nhớ căn lề và liền mạch (không sử dụng L1 cache)
         \begin{figure}[H]
             \centering
             \includegraphics[width=0.7\linewidth]{figures/CUDA/Aligned_Coalesced_Global_Memory_Transaction_2.png}
         \end{figure}
-        \item Với giao dịch 32 byte, yêu cầu bốn giao dịch và tất cả các byte tải được sử dụng
+        \item Với giao dịch 32 byte, yêu cầu bốn giao dịch và tất cả các byte được tải được sử dụng
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không căn lề và liền mạch (không sử dụng L1 cache)
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.7\linewidth]{figures/CUDA/Misaligned_Coalesced_Global_Memory_Transaction_2.png}
+        \end{figure}
+        \item Với giao dịch 32 byte, sẽ cần thêm số giao dịch bộ nhớ để tải tất cả số byte cần đọc nhưng số bytes được tải dư thừa giảm đi so với giao dịch 128 byte
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Truy cập bộ nhớ không căn lề và không liền mạch (không sử dụng L1 cache)
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.7\linewidth]{figures/CUDA/Misaligned_Uncoalesced_Global_Memory_Transaction_3.png}
+        \end{figure}
+        \item Với truy cập dữ liệu không liền mạch, nhiều byte hơn số byte cần được tải nhưng hiệu quả hơn giao dịch 128 byte
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các mẫu truy cập bộ nhớ toàn cục}
+    \begin{itemize}
+        \item Ghi vào bộ nhớ toàn cục luôn luôn sử dụng giao dịch 32 byte
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/Global_Memory_Write.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Bộ nhớ toàn cục và bộ nhớ chức năng đặc biệt}
+    \begin{itemize}
+        \item Bộ nhớ toàn cục rất hữu ích và dễ sử dụng nhưng cũng có rất nhiều hạn chế
+        \item Hạn chế:
+        \begin{itemize}
+            \item Các chương trình rất dễ sử dụng các mẫu truy cập bộ nhớ không làm tối ưu băng thông
+            \item Nhiều luồng truy cập vào cùng một ô nhớ dẫn đến sử dụng bộ nhớ không hiệu quả
+            \item Các luồng truy cấp vào các ô nhớ nhảy cách cũng dẫn đến không tối ưu hiệu năng
+        \end{itemize}
+        \item Các bộ nhớ chức năng đặc biệt giúp giải quyết các vấn đề đối với truy cập bộ nhớ toàn cục:
+        \begin{itemize}
+            \item Chuyên dụng cho các loại dữ liệu khác nhau, các mẫu dữ liệu khác nhau
+            \item Cho phép lập trình viên can thiệp nhiều hơn vào luân chuyển hay đặt dữ liệu hơn so với kiến trúc của CPU
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Bộ nhớ chia sẻ}
+    \begin{itemize}
+        \item Bộ nhớ chia sẻ có thể được cấp phát động hoặc tĩnh
+        \item Bộ nhớ chia sẻ cấp phát tĩnh:
+        \begin{itemize}
+            \item Kích thước là cố định tại thời điểm biên dịch
+            \item Có thể khai báo nhiều biến cấp phát tĩnh trên bộ nhớ chia sẻ
+            \item Có thể được khai báo toàn cục hoặc bên trong hàm của device
+            \item Có thể là mảng nhiều chiều:
+            \_\_shared\_\_ int s\_arr[256][256];
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Bộ nhớ chia sẻ}
+    \begin{itemize}
+        \item Bộ nhớ chia sẻ cấp phát động:
+        \begin{itemize}
+            \item Kích thước (byte) được đặt tại thời điểm kernel lauch với tham số thứ ba 
+            \item Chỉ có thể cấp phát một mảng cấp phát động trên bộ nhớ chia sẻ
+            \item Bắt buộc phải là mảng một chiều
+        \end{itemize}
+    \end{itemize}
+    \begin{verbatim}
+__global__ void kernel(...) {
+    extern __shared__ int s_arr[];
+    ...
+}
+kernel<<<nblocks, threads_per_block, shared_memory_bytes>>>(...);
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Bộ nhớ hằng}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Được khai báo với từ khóa \_\_constant\_\_
+                \item Chỉ đọc 
+                \item Kích thước tối đa 64KB
+                \item Được đặt trong device memory
+                \item Được cache đối với từng SM
+                \item Được tối ưu cho tất cả các luồng trong một warp cùng truy cập vào một ô nhớ
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.4\linewidth]{figures/CUDA/GPU_Constant_Memory.png} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Bộ nhớ hằng}
+    \begin{itemize}
+        \item Bộ nhớ hằng phù hợp nhất để lưu các hằng số:
+        \begin{itemize}
+            \item Các giá trị chỉ đọc 
+            \item Các giá trị được truy cập với khả năng như nhau từ tất cả các luồng
+        \end{itemize}
+        \item Ví dụ: Giả sử tất cả các luồng tính phương trình:
+        \begin{equation*}
+            y = m x + b
+        \end{equation*}
+        với các giá trị khác nhau của $x$ nhưng cùng giá trị $m$ và b
+        \item Tất cả các luồng có thể tham chiếu $m$ và $b$ đến cùng vùng nhớ
+        \item Mẫu truy cập quảng bá tối ưu cho bộ nhớ hằng
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Bộ nhớ hằng}
+    \begin{itemize}
+        \item Một mảng 1 chiều và ô được tính dựa vào 8 ô láng giềng, được trọng số bởi các hằng số $c_0, c_1, c_2, c_3$
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\linewidth]{figures/CUDA/1d_Stencil.png}
+    \end{figure}
+    \begin{equation*}
+        \begin{aligned}
+            f^{\prime}(x) \approx &c_0 (f(x + 4h) - f(x - 4h)) + c_1 (f(x + 3h) - f(x - 3h)) + \\ 
+            &c_2 (f(x + 2h) - f(x - 2h)) + c_3 (f(x + h) - f(x - h))
+        \end{aligned}
+    \end{equation*}
+\end{frame}
+
+\begin{frame}[fragile]{Bộ nhớ hằng}
+    \begin{verbatim}
+__constant__ float coef[RADIUS + 1];
+cudaMemcpyToSymbol(coef, h_coef, (RADIUS + 1) * sizeof(float));
+__global__ void stencil_1d(float *in, float *out, int N) {
+    ...
+    for (int i = 1; i <= RADIUS; i++) {
+    tmp += coef[i] * (smem[sidx + i] - smem[sidx - i]);
+    }
+} 
+    \end{verbatim}
+\end{frame}
+
+\begin{frame}{Đồng bộ hóa luồng trong CUDA}
+    \begin{itemize}
+        \item \_\_syncthreads
+        \begin{itemize}
+            \item Đồng bộ hóa thực thi tất cả các luồng trong cùng một block
+            \item Không một luồng nào trong cùng một block có thể vượt qua \_\_syncthreads trước khi tất cả các luồng tiến tới barrier 
+            \item \_\_syncthreads đảm bảo tất cả những thay đổi đối với các biến ở bộ nhớ chia sẻ và biến ở bộ nhớ toàn cục bởi các luồng trong block hiện tại được nhìn thấy bởi tất cả các luồng trong block này
+        \end{itemize}
+        \item \_\_threadfence\_block
+        \begin{itemize}
+            \item Tất cả các tác vụ ghi vào biến ở bộ nhớ chia sẻ và bộ nhớ toàn cục bởi một luồng đều được nhìn thấy bởi các luồng khác trong cùng một block sau barrier này
+            \item Không khóa việc thực thi luồng
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Đồng bộ hóa luồng trong CUDA}
+    \begin{itemize}
+        \item \_\_threadfence
+        \begin{itemize}
+            \item Tất cả các tác vụ ghi vào bộ nhớ toàn cục bởi một luồng đều được nhìn thấy bởi các luồng khác trong cùng một grid sau barrier này
+            \item Không khóa việc thực thi luồng
+        \end{itemize}
+        \item \_\_threadfence\_system
+        \begin{itemize}
+            \item Tất cả các tác vụ ghi vào bộ nhớ toàn cục, host memory và các bộ nhớ khác của CUDA bằng các luồng được nhìn thấy bởi tất cả các luồng khác trong CUDA và tất cả các luồng của host sau barrier này 
+            \item Không khóa việc thực thi luồng
+        \end{itemize}
     \end{itemize}
 \end{frame}
 \end{document}
