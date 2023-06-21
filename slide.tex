@@ -2137,7 +2137,73 @@ MPI_Type_commit(&newtype);
 \end{frame}
 
 \begin{frame}{MPI Runtime}
-    
+    \begin{itemize}
+        \item Cung cấp các tiến trình thực thi và xử lý tín hiệu
+        \item Xử lý tín hiệu (SIGKILL< SIGSUSP, SIGUSR1/2)
+        \item Thu thập stdout và stderr, lan truyền stdin
+        \item Có thể lan truyền các biến môi trường 
+        \item Cung cấp các gói hỗ trợ cho debug, profile, truy vết 
+        \item Có thể giao tiếp với một hệ thống hàng đợi để sắp xếp các tiến trình tốt hơn
+        \item MPI-2 phát triển một bản sao của mpirun được chuẩn hóa: mpiexec
+        \item Các tham số dòng lệnh và các biến môi trường cho phép linh hoạt thực thi chương trình
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Môi trường MPI}
+    \begin{itemize}
+        \item Thực hiện chức năng khởi tạo, kết thúc hoặc hủy bỏ
+        \item Xử lý lỗi (ngoại lệ)
+        \item Một số hàm cần thiết:
+        \begin{itemize}
+            \item double MPI\_Wtime(void), double MPI\_Wtick(void)
+            \item MPI\_Get\_processor\_name(char *name, int *resultlen)
+        \end{itemize}
+        \item Hàm truy vấn communicator (size, rank) cho MPI\_COMM\_WORLD
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}{Xử lý ngoại lệ}
+    \begin{itemize}
+        \item Sử dụng các hàm xử lý ngoại lệ và các MPI return codes
+        \item Bộ xử lý lỗi mặc định: MPI\_ERRORS\_ARE\_FATAL
+        \begin{itemize}
+            \item Bộ xử lý lỗi khi được gọi sẽ làm chương trình hủy bỏ thực thi tất cả các tiến trình hiện tại.
+            Cùng hiệu ứng tương tự như MPI\_ABORT được gọi bởi tiến trình gọi Bộ xử lý lỗi
+        \end{itemize}
+        \item Bộ xử lý lỗi thay thế: MPI\_ERRORS\_RETURN
+        \begin{itemize}
+            \item Bộ xử lý lỗi chỉ trả về mã lỗi cho người dùng
+            \item MPICH cung cấp thêm 2 tính tăng:
+            \begin{itemize}
+                \item MPE\_Errors\_call\_dbx\_in\_xterm
+                \item MPE\_Signals\_call\_debugger 
+            \end{itemize}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Xử lý lỗi}
+    \begin{itemize}
+        \item Một số hàm xử lý lỗi:
+        \begin{itemize}
+            \item MPI\_Errhandler\_create(MPI\_Handler\_function *function,
+                                          MPI\_Errhandler *errhandler) 
+            \item MPI\_Errhandler\_set(MPI\_Comm comm, MPI\_Errhandler errhandler) 
+            \item MPI\_Errhandler\_get(MPI\_Comm comm, MPI\_Errhandler *errhandler)
+            \item MPI\_Errhandler\_free(MPI\_Errhandler *errhandler)
+            \item MPI\_Error\_string(int errorcode, char *string, int *resultlen)
+            \item MPI\_Error\_class(int errorcode, int *errorclass)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Các công cụ profile}
+    \begin{itemize}
+        \item Tất cả các hàm profile sử dụng tiền tối PMPI\_... 
+        \item Thư viện profile có thể viết riêng hàm MPI\_ và gọi hàm PMPI\_ tương ứng để thực hiện truyền thông điệp
+        \item Cung cấp một cách truy vết cũng như profile về chi phí thời gian thực thi một chương trình song song khi cần cải thiện hiệu năng hoặc lỗi logic
+    \end{itemize}
 \end{frame}
 
 \section{CUDA}
