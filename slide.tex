@@ -2495,14 +2495,188 @@ nvcc hello.cu -o a.out && ./a.out
 \subsection{Mô hình thực thi trên GPU}
 
 \begin{frame}{Mô hình thực thi trên GPU}
-    
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Gồm nhiều lõi đơn giản
+                \item Ví dụ Kiến trúc Fermi:
+                \begin{itemize}
+                    \item 16 SMs:
+                    \begin{itemize}
+                        \item 32 core 
+                        \item Shared memory, registers, cache 
+                        \item SFU, CU
+                        \item 1TFLOP 
+                        \item 144GB/s bandwidth
+                    \end{itemize}
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.75\linewidth]{figures/CUDA/SMs_diagram.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.65\linewidth]{figures/CUDA/Fermi_Architecture.png}
+        \caption{Sơ đồ GPU kiến trúc Fermi}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.45\linewidth]{figures/CUDA/SM_Kepler_Architecture.png}
+        \caption{Sơ đồ SM kiến trúc Kepler}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.45\linewidth]{figures/CUDA/SM_Hopper_Archtecture.jpg}
+        \caption{Sơ đồ SM kiến trúc Hopper}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{itemize}
+        \item Các đặc điểm của luồng trong CUDA
+        \begin{itemize}
+            \item Mỗi luồng có một bộ đếm địa chỉ chương trình riêng
+            \item Mỗi luồng có một tập thanh ghi riêng
+            \item Mỗi luồng có một đường đi thực thi riêng
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/Software_vs_Hardware.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{itemize}
+        \item Khi chương trình gọi kernel, các thread block sẽ được đặt lịch trình vào một SMs.
+        \item Thread block sẽ ở trên SMs đến khi được thực thi xong hết
+        \item Một SM có thể được gán nhiều thread block
+        \item Từng luồng sẽ được gán một lượng tài nguyên (số thanh ghi, bộ nhớ cục bộ)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.85\linewidth]{figures/CUDA/Connecting_SW_HW_1.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{itemize}
+        \item Phần cứng sẽ lên lịch trình các thread block vào các SMs còn vị trí cho các block 
+        \item Không có thứ tự thực hiện rõ ràng
+        \item Nếu một SMs có nhiều tài nguyên hơn thì phần cứng sẽ ưu tiên lên lịch trình block vào SMs này
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.85\linewidth]{figures/CUDA/Connecting_SW_HW_2.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Warps}
+    \begin{itemize}
+        \item Về mặt logic, các luồng trong cùng một block thực thi song song. Nhưng về mặt phần cứng thì không
+        \item CUDA thực hiện kiến trúc SIMT (Single Instruction Multiple Thread) để quản lý và thực thi các luồng trong một nhóm 32 luồng gọi là warps.
+        \item Các luồng trong cùng một warp thực thi cùng một chương trình tại một thời điểm
+        \item Không có thứ tự thực hiện rõ ràng từ trước
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/Logical_view_vs_Hardware_view.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Warps}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Các luồng trong một warp bắt buộc phải cùng một block 
+                \item Các luồng trong warp được gán từ các luồng có id liền nhau trong một block 
+            \end{itemize}
+        \end{column}\begin{column}{0.5\linewidth}
+                \begin{figure}[H]
+                    \centering
+                    \includegraphics[width=0.8\linewidth]{figures/CUDA/SIMT_Warps.png}
+                \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Warps}
+    \begin{columns}[onlytextwidth]
+        \begin{column}{0.5\linewidth}
+            \begin{itemize}
+                \item Kiến trúc Fermi, mỗi SMs có:
+                \begin{itemize}
+                    \item Hai warp scheduler
+                    \item Hai đơn vị thực thi chương trình
+                \end{itemize}
+                \item Kiến trúc Kepler, mỗi SMs có:
+                \begin{itemize}
+                    \item 4 Warp schduler
+                    \item 8 đơn vị thực thi chương trình
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=\linewidth]{figures/CUDA/Warp_Scheduler.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Warps}
+    \begin{itemize}
+        \item SMs gần như không tốn chi phí cho việc lên lịch trình thực thi các warps
+        \item Các warp đã sẵn sàng về dữ liệu, chương trình và có vẫn còn đủ CUDA core trong SM được gọi là eligible
+        \item Các eligible warp sẽ được ưu tiên trong lên lịch trình thực thi 
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\linewidth]{figures/CUDA/Eligible_Stall_Warps.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Warp Divergence}
+    \begin{itemize}
+        \item Tránh tối đa việc sử dụng if - else, for, while trong kernel 
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/CUDA/Warp_Divergence.jpg}
+    \end{figure}
 \end{frame}
 
 \subsection{Điều khiển GPU}
 
 \begin{frame}[fragile]{Điều khiển GPU}
     \begin{itemize}
-        \item CUDA kernal:
+        \item CUDA kernel:
         \begin{itemize}
             \item Định nghĩa tác vụ được thực thi bởi một luồng đơn trên GPU
             \item Cách viết tương tự như cách viết hàm trên CPU
@@ -3302,5 +3476,37 @@ __global__ void stencil_1d(float *in, float *out, int N) {
             \item Không khóa việc thực thi luồng
         \end{itemize}
     \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số kinh nghiệm khi viết chương trình CUDA}
+    \begin{itemize}
+        \item Các block nên có trục x là một bội của 32
+        \item Các block nên có từ 128 - 256 thread để tạo ra latency hiding
+        \item Nhưng không nên có quá nhiều thread sẽ làm ảnh hưởng đến lượng tài nguyên một thread
+        \item Số block nên đủ nhiều để tận dụng hết các SMs
+        \item Các giá trị hằng nên để ở bộ nhớ hằng
+        \item Các biến mảng hay sử dụng trong kernel nên được cấp phát và copy vào bộ nhớ chia sẻ
+        \item Tránh việc sử dụng if-else, for, while trong kernel 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số thư viện CUDA}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\linewidth]{figures/CUDA/CUDA_library.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Pipeline chung sử dụng thư viện}
+    \begin{enumerate}
+        \item Khởi tạo các hàm xử lý tương ứng với thư viện:  cublasHandle\_t, cufftHandle,	
+        cusparseHandle\_t, curandGenerator\_t
+        \item Cấp phát bộ nhớ cho input và output cho các hàm của thư viện (vẫn hay dùng cudaMalloc)
+        \item Nếu input chưa ở dạng mà thư viện hỗ trợ thì chuyển về dạng thích hợp
+        \item Chuyển dữ liệu ở định dạng phù hợp vào vùng nhớ được cấp phát (cudaMemcpy, cublasSetVector)
+        \item Cấu hình cho việc thực thi tính toán
+        \item Đưa dữ liệu về dạng phù hợp với ứng dụng yêu cầu
+        \item Giải phóng tài nguyên của CUDA
+    \end{enumerate}
 \end{frame}
 \end{document}
