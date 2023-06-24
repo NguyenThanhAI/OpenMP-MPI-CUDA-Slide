@@ -95,7 +95,7 @@
 
 \AtBeginSection[]
 {
-    \begin{frame}
+    \begin{frame}[shrink]
         \frametitle{Nội dung}
         \tableofcontents[currentsection, subsectionstyle=show/show/hide]
     \end{frame}
@@ -136,7 +136,7 @@
 }
 
 %\begin{noheadline}
-\begin{frame} \maketitle \end{frame}
+\begin{frame}[shrink] \maketitle \end{frame}
 %\end{noheadline}
     
 \setbeamertemplate{itemize items}[default]
@@ -438,7 +438,7 @@ omp_set_num_threads(4);
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Mô hình chương trình SIMD}
+\begin{frame}[shrink, fragile]{Mô hình chương trình SIMD}
     \begin{itemize}
         \item SIMD cho parallel region:
         \begin{itemize}
@@ -1950,7 +1950,7 @@ MPI_Finalize();
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Topology theo tọa độ Decartes}
+\begin{frame}[shrink, fragile]{Topology theo tọa độ Decartes}
     \begin{verbatim}
 int rank, size;
 int dims[2] = {4, 4};  // Kích thước từng chiều
@@ -2000,7 +2000,7 @@ MPI_Finalize();
     \end{figure}
 \end{frame}
 
-\begin{frame}{Topology đồ thị}
+\begin{frame}[shrink]{Topology đồ thị}
     \begin{itemize}
         \item Một số bài toán không thường gặp, việc tổ chức các tiến trình trên một đồ thị phù hợp:
         \begin{itemize}
@@ -2455,7 +2455,7 @@ nvcc hello.cu -o a.out && ./a.out
     \end{itemize}
 \end{frame}
 
-\begin{frame}{CUDA - Mở rộng của C}
+\begin{frame}[shrink]{CUDA - Mở rộng của C}
     \begin{itemize}
         \item Khai báo hàm:
         \begin{itemize}
@@ -2883,7 +2883,7 @@ __global__ void kernel(int *arr) {
     
 \end{frame}
 
-\begin{frame}[fragile]{Quản lý bộ nhớ GPU}
+\begin{frame}[shrink, fragile]{Quản lý bộ nhớ GPU}
     \begin{verbatim}
 void *d_arr, *h_arr;
 h_addr = ... ; /* Cấp phát bộ nhớ và khởi tạo dữ liệu trên host */
@@ -2914,7 +2914,7 @@ cudaFree(d_arr);
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Ví dụ chương trình}
+\begin{frame}[shrink, fragile]{Ví dụ chương trình}
 \begin{verbatim}
 __global__ void axpy(REAL *x, REAL *y, int n, REAL a) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2984,7 +2984,7 @@ int main(int argc, char** argv) {
     \end{columns}
 \end{frame}
 
-\begin{frame}{Tổ chức bộ nhớ GPU}
+\begin{frame}[shrink]{Tổ chức bộ nhớ GPU}
     \begin{columns}[onlytextwidth]
         \begin{column}{0.5\linewidth}
             \begin{itemize}
@@ -3054,7 +3054,7 @@ int main(int argc, char** argv) {
     \end{columns}
 \end{frame}
 
-\begin{frame}{Tổ chức bộ nhớ GPU}
+\begin{frame}[shrink]{Tổ chức bộ nhớ GPU}
     \begin{columns}[onlytextwidth]
         \begin{column}{0.5\linewidth}
             \begin{itemize}
@@ -3167,7 +3167,7 @@ int main(int argc, char** argv) {
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Tổ chức bộ nhớ GPU}
+\begin{frame}[shrink]{Tổ chức bộ nhớ GPU}
     \begin{itemize}
         \item Ta đã biết cách cấp phát động bộ nhớ toàn cục:
         \begin{itemize}
