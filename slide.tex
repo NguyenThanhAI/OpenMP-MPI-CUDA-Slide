@@ -296,7 +296,7 @@ for(i=0;i<N;i++) {
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Chương trình đơn giản OpenMP}
+\begin{frame}[shrink, fragile]{Chương trình đơn giản OpenMP}
     \begin{verbatim}
         #include <stdio.h>
         #include <omp.h>
@@ -1254,6 +1254,13 @@ for (i = 0; i < n; i++)
             \item Hiệu năng và tính linh hoạt cao
         \end{itemize}
         \item Nhược điểm: Mô hình truyền thông điệp hai phía làm chương trình phức tạp
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MPI cơ bản}
+    \begin{itemize}
+        \item Hướng dẫn cài đặt MPI trên Windows: \url{https://www.youtube.com/watch?v=T_BVqSya1Is}
+        \item Setup cluster MPI: \url{https://mpitutorial.com/tutorials/running-an-mpi-cluster-within-a-lan/}
     \end{itemize}
 \end{frame}
 
@@ -3516,6 +3523,13 @@ __global__ void stencil_1d(float *in, float *out, int N) {
         \item Các giá trị hằng nên để ở bộ nhớ hằng
         \item Các biến mảng hay sử dụng trong kernel nên được cấp phát và copy vào bộ nhớ chia sẻ
         \item Tránh việc sử dụng if-else, for, while trong kernel 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Một số code ví dụ}
+    \begin{itemize}
+        \item OpenMP, MPI: \url{https://github.com/NguyenThanhAI/OpenMP_MPI_Example_Codes.git}
+        \item CUDA: \url{https://drive.google.com/drive/folders/1A7kVnAFDqf4I5dQokuAgWnlq9r9ch-1o?usp=sharing}
     \end{itemize}
 \end{frame}
 
