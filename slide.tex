@@ -218,6 +218,17 @@
     \end{figure}
 \end{frame}
 
+\begin{frame}[fragile]{Cú pháp OpenMP}
+    \begin{itemize}
+        \item OpenMP sử dụng các chỉ thị biên dịch dạng \#pragma.
+        \item Với C và C++, chỉ thị có dạng:
+        \begin{verbatim}
+#pragma omp construct [clause [clause]...]
+        \end{verbatim}
+        \item Khai báo tệp tiêu đề: \#include <omp.h>
+    \end{itemize}
+\end{frame}
+
 \begin{frame}{Chỉ thị biên dịch}
     \begin{itemize}
         \item Chỉ thị thực thi OpenMP áp dụng cho các khối có cấu trúc đứng kế tiếp với nó.
@@ -424,17 +435,6 @@ omp_set_num_threads(4);
         \item Parallel region tập hợp một tập các luồng cho tính toán và xử lý.
         \item Từng luồng thực thi một tác vụ đơn lẻ
         \item Ánh xạ 1:1 giữa các tác vụ và luồng
-    \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]{Cú pháp OpenMP}
-    \begin{itemize}
-        \item OpenMP sử dụng các chỉ thị biên dịch dạng \#pragma.
-        \item Với C và C++, chỉ thị có dạng:
-        \begin{verbatim}
-#pragma omp construct [clause [clause]...]
-        \end{verbatim}
-        \item Khai báo tệp tiêu đề: \#include <omp.h>
     \end{itemize}
 \end{frame}
 
@@ -1183,7 +1183,7 @@ for (i = 0; i < n; i++)
 
 \begin{frame}[fragile]{Một số kỹ thuật tối ưu}
     \begin{itemize}
-        \item chỉ thị master hiệu quả hơn single nhưng cần thread id 0 sẵn sàng
+        \item Chỉ thị master hiệu quả hơn single nhưng cần thread id 0 sẵn sàng
         \item single hiệu quả hơn nếu thread id 0 không sẵn sàng
         \item single có barrier ngầm, khi không cần thiết nên dùng thêm nowait
     \end{itemize}
@@ -1227,7 +1227,7 @@ for (i = 0; i < n; i++)
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Bản đồ phát triển}
+\begin{frame}[shrink]{Bản đồ phát triển}
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.75\linewidth]{figures/MPI/MPI_Genealogy.png}
@@ -1379,7 +1379,7 @@ int main(int argc, char** argv) {
         \begin{itemize}
             \item Kiểu dữ liệu được định nghĩa là ánh xạ tớ kiểu dữ liệu của ngôn ngữ lập trình sử dụng MPI.
             \item Kiểu dữ liệu người do người dùng định nghĩa, các cấu trúc hoặc các kiểu dữ liệu khác
-            \item Kiểu dứ liệu do người dùng định nghĩa sẽ được MPI tối ưu
+            \item Kiểu liệu liệu do người dùng định nghĩa sẽ được MPI tối ưu
         \end{itemize}
     \end{itemize}
 \end{frame}
@@ -1482,14 +1482,14 @@ int main(int argc, char** argv) {
 
 \begin{frame}{Hiệu năng của truyền thông điệp blocking}
     \begin{itemize}
-        \item Truyền đồng bộ  cho tốc độ truyền dữ liệu cao nhất, nhưng chi phí khở tạo lại rất cao (độ trễ) và nguy cơ xảy ra deadlock.
+        \item Truyền đồng bộ  cho tốc độ truyền dữ liệu cao nhất, nhưng chi phí khởi tạo lại rất cao (độ trễ) và nguy cơ xảy ra deadlock.
         \item Truyền bộ đệm cho độ trễ thấp nhất nhưng:
         \begin{itemize}
             \item Quản lý bộ đệm phức tạp
             \item Vấn đề về băng thông do chi phí sao chép
         \end{itemize}
         \item Gửi sẵn sàng có vẻ là tốt nhất nhưng cũng rất dễ gây khó khăn trong lập trình nên cũng tránh sử dụng
-        \item Truyền theo tiêu chuẩn cần phải được tối ưu cẩn thận. Với thông điệp kích thước lớn gần như chắc chắn xảy ra deadlock
+        \item Truyền thông điệp cần được xem xét và tối ưu cẩn thận. Với thông điệp kích thước lớn gần như chắc chắn xảy ra deadlock
     \end{itemize}
     
 \end{frame}
@@ -1806,7 +1806,7 @@ MPI_Finalize();
 
            \item Tương đương với hai hàm MPI\_Reduce + MPI\_Bcast
         \end{itemize}
-        \item Các phép toán tiền tốc
+        \item Các phép toán tiền tố
         \begin{itemize}
             \item inclusive scan: kết quả ở tiến trình i = op($v_0, ... v_i$) 
             \item int MPI\_Scan(void *sendbuf, void *recvbuf, int count,
@@ -1869,7 +1869,7 @@ MPI_Finalize();
 \begin{frame}{Truyền thông tất cả - tất cả}
     \begin{itemize}
         \item Mỗi tiến trình có một tập các block dữ liệu
-        \item Mỗi tiến trình truyền kiểu scatter đến các tiến trihf còn lại
+        \item Mỗi tiến trình truyền kiểu scatter đến các tiến trình còn lại
         \item Kết quả tương đương với chuyển vị ma trận
         \item int MPI\_Alltoall(void *sendbuf, int sendcount,
                                 MPI\_Datatype senddatatype, void *recvbuf,
@@ -1942,13 +1942,13 @@ MPI_Finalize();
 \begin{frame}{Topology theo tọa độ Decartes}
     \begin{itemize}
         \item Việc truyền, nhận thông điệp vẫn cần rank 1 chiều
-        \item Ánh xạ tọa độ trên tọa độ Decarted $\Leftrightarrow$ rank:
+        \item Ánh xạ tọa độ trên tọa độ Decartes $\Leftrightarrow$ rank:
         \begin{itemize}
             \item int MPI\_Cart\_coord(MPI\_Comm comm\_cart, int rank, int maxdims,
                                       int *coords) 
             \item int MPI\_Cart\_rank(MPI\_Comm comm\_cart, int *coords, int *rank) 
         \end{itemize}
-        \item Phép toán hay được thực hiện trên topology Decarted nhất là phép dịch
+        \item Phép toán hay được thực hiện trên topology Decartes nhất là phép dịch
         \item Xác định rank của tiến trình nguồn và tiến trình đích của một shift:
         \begin{itemize}
             \item int MPI\_Cart\_shift(MPI\_Comm comm\_cart, int dir, int s\_step,
@@ -2272,7 +2272,7 @@ MPI_Type_commit(&newtype);
     \begin{figure}[H]
         \centering
         \includegraphics[height=0.7\textheight]{figures/CUDA/CPUvsGPU_design.png}
-        caption{So sánh thiết kế CPU và GPU}
+        \caption{So sánh thiết kế CPU và GPU}
     \end{figure}
 \end{frame}
 
@@ -2317,11 +2317,11 @@ MPI_Type_commit(&newtype);
     \end{figure}
 \end{frame}
 
-\begin{frame}{Thiết kế của GPU}
+\begin{frame}[shrink]{Thiết kế của GPU}
     \begin{itemize}
         \item GPU bao gồm nhiều lõi đơn giản
         \item Được thiết kế cho nhiều tác vụ đơn giản: thông lượng dữ liệu cao
-        \item Ít control units: giảm độ trễ (latency)
+        \item Áp dụng cho những bài toán có thể chia dữ liệu thành các phần độc lập tương đối
     \end{itemize}
 \end{frame}
 
@@ -2357,7 +2357,7 @@ MPI_Type_commit(&newtype);
 
 \begin{frame}{Các bước chính trong một chương trình CUDA}
     \begin{enumerate}
-        \item Cấp phát và khởi tạo các biến trên host và device
+        \item Cấp phát và khởi tạo các biến trên host và cấp phát các biến trên device
         \item Chuyển dữ liệu từ host sang device
         \item Thực hiện tính toán trên device
         \item Chuyển kết quả từ device sang host
@@ -2365,7 +2365,7 @@ MPI_Type_commit(&newtype);
     \end{enumerate}
 \end{frame}
 
-\begin{frame}[fragile]{Biên dịch và chạy chương trình CUDA}
+\begin{frame}[shrink, fragile]{Biên dịch và chạy chương trình CUDA}
     \begin{itemize}
         \item Phải cài CUDA SDK và NVIDIA Graphic Driver
         \item Dùng trình biên dịch NVIDA: nvcc
@@ -2405,7 +2405,7 @@ nvcc hello.cu -o a.out && ./a.out
                 \begin{itemize}
                     \item Tất cả các luồng trong một thread block chạy trên một một SMs
                     \item Các luồng trong cùng một block có thể giao tiếp
-                    \item Cho phép xử lý hiệu quả trê dữ liệu 1-D, 2-D, 3-D
+                    \item Cho phép xử lý hiệu quả trên dữ liệu 1-D, 2-D, 3-D
                 \end{itemize}
                 \item Nhiều thread block tạo nên một grid
             \end{itemize}
@@ -2507,6 +2507,14 @@ nvcc hello.cu -o a.out && ./a.out
 \subsection{Mô hình thực thi trên GPU}
 
 \begin{frame}{Mô hình thực thi trên GPU}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.65\linewidth]{figures/CUDA/Fermi_Architecture.png}
+        \caption{Sơ đồ GPU kiến trúc Fermi}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[shrink]{Mô hình thực thi trên GPU}
     \begin{columns}[onlytextwidth]
         \begin{column}{0.5\linewidth}
             \begin{itemize}
@@ -2531,14 +2539,6 @@ nvcc hello.cu -o a.out && ./a.out
             \end{figure}
         \end{column}
     \end{columns}
-\end{frame}
-
-\begin{frame}{Mô hình thực thi trên GPU}
-    \begin{figure}[H]
-        \centering
-        \includegraphics[width=0.65\linewidth]{figures/CUDA/Fermi_Architecture.png}
-        \caption{Sơ đồ GPU kiến trúc Fermi}
-    \end{figure}
 \end{frame}
 
 \begin{frame}{Mô hình thực thi trên GPU}
