@@ -2599,7 +2599,7 @@ nvcc hello.cu -o a.out && ./a.out
     \end{figure}
 \end{frame}
 
-\begin{frame}{Warps}
+\begin{frame}[shrink]{Warps}
     \begin{itemize}
         \item Về mặt logic, các luồng trong cùng một block thực thi song song. Nhưng về mặt phần cứng thì không
         \item CUDA thực hiện kiến trúc SIMT (Single Instruction Multiple Thread) để quản lý và thực thi các luồng trong một nhóm 32 luồng gọi là warps.
@@ -3336,7 +3336,7 @@ int main(int argc, char** argv) {
     \end{figure}
 \end{frame}
 
-\begin{frame}{Bộ nhớ toàn cục và bộ nhớ chức năng đặc biệt}
+\begin{frame}[shrink]{Bộ nhớ toàn cục và bộ nhớ chức năng đặc biệt}
     \begin{itemize}
         \item Bộ nhớ toàn cục rất hữu ích và dễ sử dụng nhưng cũng có rất nhiều hạn chế
         \item Hạn chế:
@@ -3452,6 +3452,8 @@ __global__ void stencil_1d(float *in, float *out, int N) {
     \end{verbatim}
 \end{frame}
 
+\subsection{Đồng bộ hóa luồng trong CUDA}
+
 \begin{frame}{Đồng bộ hóa luồng trong CUDA}
     \begin{itemize}
         \item \_\_syncthreads
@@ -3483,17 +3485,7 @@ __global__ void stencil_1d(float *in, float *out, int N) {
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Một số kinh nghiệm khi viết chương trình CUDA}
-    \begin{itemize}
-        \item Các block nên có trục x là một bội của 32
-        \item Các block nên có từ 128 - 256 thread để tạo ra latency hiding
-        \item Nhưng không nên có quá nhiều thread sẽ làm ảnh hưởng đến lượng tài nguyên một thread
-        \item Số block nên đủ nhiều để tận dụng hết các SMs
-        \item Các giá trị hằng nên để ở bộ nhớ hằng
-        \item Các biến mảng hay sử dụng trong kernel nên được cấp phát và copy vào bộ nhớ chia sẻ
-        \item Tránh việc sử dụng if-else, for, while trong kernel 
-    \end{itemize}
-\end{frame}
+\subsection{Một số thư viện CUDA}
 
 \begin{frame}{Một số thư viện CUDA}
     \begin{figure}[H]
@@ -3513,6 +3505,18 @@ __global__ void stencil_1d(float *in, float *out, int N) {
         \item Đưa dữ liệu về dạng phù hợp với ứng dụng yêu cầu
         \item Giải phóng tài nguyên của CUDA
     \end{enumerate}
+\end{frame}
+
+\begin{frame}{Một số kinh nghiệm khi viết chương trình CUDA}
+    \begin{itemize}
+        \item Các block nên có trục x là một bội của 32
+        \item Các block nên có từ 128 - 256 thread để tạo ra latency hiding
+        \item Nhưng không nên có quá nhiều thread sẽ làm ảnh hưởng đến lượng tài nguyên một thread
+        \item Số block nên đủ nhiều để tận dụng hết các SMs
+        \item Các giá trị hằng nên để ở bộ nhớ hằng
+        \item Các biến mảng hay sử dụng trong kernel nên được cấp phát và copy vào bộ nhớ chia sẻ
+        \item Tránh việc sử dụng if-else, for, while trong kernel 
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Tài liệu tham khảo}
