@@ -105,6 +105,7 @@
 \setbeamertemplate{frametitle continuation}{}
 
 \begin{document}
+\nocite{*}
 \author[Nguyễn Chí Thanh - 21007925]{
 	\begin{tabular}{c} 
 	\Large
@@ -493,7 +494,7 @@ if(thread_id == x) {
     \end{figure}
 \end{frame}
 
-\begin{frame}[fragile]{Chỉ thị Barrier}
+\begin{frame}[shrink, fragile]{Chỉ thị Barrier}
     \begin{verbatim}
 #pragma omp parallel shared (A, B, C) private(id)
 {
@@ -552,7 +553,7 @@ if(thread_id == x) {
     \end{verbatim}
 \end{frame}
 
-\begin{frame}[fragile]{Phân chia công việc sử dụng thread id}
+\begin{frame}[shrink, fragile]{Phân chia công việc sử dụng thread id}
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.3\linewidth]{figures/OpenMP/Distribute.png}
@@ -572,7 +573,7 @@ if(thread_id == x) {
     \end{verbatim}
 \end{frame}
 
-\begin{frame}[fragile]{Các mệnh đề schedule}
+\begin{frame}[shrink, fragile]{Các mệnh đề schedule}
     Mệnh đề schdule được dùng để xác định cách chia vùng dữ liệu trong các vòng lặp giữa các luồng
     \begin{itemize}
         \item schedule (static | dynamic | guided [,chunk\_size])
@@ -755,7 +756,7 @@ printf("result=%d\n", i);
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{critical}
+\begin{frame}[shrink, fragile]{critical}
     \begin{itemize}
         \item critical chỉ cho phép một luồng duy nhất được thực thi một đoạn code tại một thời điểm
     \end{itemize}
@@ -770,11 +771,13 @@ int shared = 0;
         #pragma omp critical
         {
             shared += 1;
-            printf("Thread %d: Incrementing shared to %d\n", thread_id, shared);
+            printf("Thread %d: Incrementing shared to %d\n", 
+            thread_id, shared);
         }
     }
 }
     \end{verbatim}
+    
 \end{frame}
 
 \begin{frame}[fragile]{So sánh với single}
@@ -850,7 +853,7 @@ thread 2: -------------xxxxxxxxxxxx[< foo() >]< bar() >--->
     \end{verbatim}
 \end{frame}
 
-\begin{frame}[fragile]{So sánh với single}
+\begin{frame}[shrink, fragile]{So sánh với single}
     \begin{verbatim}
 #pragma omp parallel num_threads(3)
 {
@@ -957,7 +960,7 @@ omp_destroy_lock(&lck);
     \end{verbatim}
 \end{frame}
 
-\begin{frame}[fragile]{taskwait}
+\begin{frame}[shrink, fragile]{taskwait}
     \begin{itemize}
         \item taskwait giúp cho việc đợi tất cả các tác vụ song song mới thực hiện công việc tiếp theo (bằng một luồng) trong parallel region.
     \end{itemize}
@@ -1127,7 +1130,7 @@ for(...) {...}
     \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{Một số kỹ thuật tối ưu}
+\begin{frame}[shrink, fragile]{Một số kỹ thuật tối ưu}
     \begin{itemize}
         \item Một parallel region chứa tất cả các vòng lặp for.
     \end{itemize}
@@ -1136,7 +1139,8 @@ for(...) {...}
             \begin{verbatim}
 for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
-        #pragma omp parallel for private(k)
+        #pragma omp parallel for \ 
+         private(k)
         for (k = 0; k < n; k++) {
             ...
         }
@@ -1144,7 +1148,8 @@ for (i = 0; i < n; i++)
         \end{column}
         \begin{column}{0.5\linewidth}
             \begin{verbatim}
-#pragma omp parallel private(i, j, k)
+#pragma omp parallel \
+private(i, j, k)
 for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
         #pragma omp for
@@ -1203,7 +1208,7 @@ for (i = 0; i < n; i++)
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Lịch sử MPI}
+\begin{frame}[shrink]{Lịch sử MPI}
     \begin{itemize}
         \item Nhiều thư viện truyền thông đẹp đã được tạo ra trong quá khứ:
         \begin{itemize}
@@ -1230,7 +1235,7 @@ for (i = 0; i < n; i++)
     \end{figure}
 \end{frame}
 
-\begin{frame}{MPI cơ bản}
+\begin{frame}[shrink]{MPI cơ bản}
     \begin{itemize}
         \item Góc nhìn logic của nền tảng truyền thông điệp:
         \begin{itemize}
@@ -1532,7 +1537,7 @@ typedef struct MPI_Status {
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Deadlock với MPI\_Send / MPI\_Recv}
+\begin{frame}[shrink, fragile]{Deadlock với MPI\_Send / MPI\_Recv}
     \begin{verbatim}
 int a[10], b[10], rank;
 MPI_Status s1, s2;
@@ -1570,7 +1575,7 @@ MPI_Recv(b, 10, MPI_INT, (rank-1+size)%size, 1,
     Mỗi tiến trình gửi thông điệp sang tiến trình kề bên phải và tiến trình cuối cùng gửi thông điệp cho tiến trình đầu tiên tạo thành một vòng tròn khép kín
 \end{frame}
 
-\begin{frame}[fragile]{Khắc phục tình trạng deadlock}
+\begin{frame}[shrink, fragile]{Khắc phục tình trạng deadlock}
     \begin{verbatim}
 int a[10], b[10], size, rank;
 MPI_Status status;
@@ -1644,7 +1649,7 @@ else { // tiến trình chẵn nhận trước, gửi sau
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Truyền thông điệp non-blocking trong MPI}
+\begin{frame}[shrink, fragile]{Truyền thông điệp non-blocking trong MPI}
     \begin{verbatim}
 int rank, size;
 int data_send, data_recv;
@@ -2080,7 +2085,7 @@ MPI_Finalize();
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Xây dựng kiểu dữ liệu dẫn xuất trong MPI}
+\begin{frame}[shrink, fragile]{Xây dựng kiểu dữ liệu dẫn xuất trong MPI}
     \begin{verbatim}
 typedef struct {
     int x;
@@ -2139,7 +2144,7 @@ MPI_Type_commit(&newtype);
 \begin{frame}{MPI Runtime}
     \begin{itemize}
         \item Cung cấp các tiến trình thực thi và xử lý tín hiệu
-        \item Xử lý tín hiệu (SIGKILL< SIGSUSP, SIGUSR1/2)
+        \item Xử lý tín hiệu (SIGKILL, SIGSUSP, SIGUSR1/2)
         \item Thu thập stdout và stderr, lan truyền stdin
         \item Có thể lan truyền các biến môi trường 
         \item Cung cấp các gói hỗ trợ cho debug, profile, truy vết 
@@ -2482,7 +2487,7 @@ nvcc hello.cu -o a.out && ./a.out
         \item Cặp 3 dấu ngoặc nhọn đánh dấu lời gọi từ host sang device:
         \begin{itemize}
             \item Còn được gọi là "kernel launch"
-            \item Các tham số trong < < <...>>> là cấu hình các thread
+            \item Các tham số trong < < <...> > > là cấu hình các thread
         \end{itemize}
         \item nvcc chia code thành code của host và device:
         \begin{itemize}
@@ -3043,7 +3048,7 @@ int main(int argc, char** argv) {
         \begin{column}{0.5\linewidth}
             \begin{figure}[H]
                 \centering
-                \includegraphics[width=0.7\linewidth]{figures/CUDA/GPU_Caches_Memory.png}
+                \includegraphics[height=0.9\textheight]{figures/CUDA/GPU_Caches_Memory.png}
             \end{figure}
         \end{column}
     \end{columns}
@@ -3096,7 +3101,7 @@ int main(int argc, char** argv) {
         \begin{column}{0.5\linewidth}
             \begin{figure}[H]
                 \centering
-                \includegraphics[width=0.6\linewidth]{figures/CUDA/GPU_Constant_Memory.png}
+                \includegraphics[height=0.9\textheight]{figures/CUDA/GPU_Constant_Memory.png}
             \end{figure}
         \end{column}
     \end{columns}
@@ -3395,7 +3400,7 @@ kernel<<<nblocks, threads_per_block, shared_memory_bytes>>>(...);
         \begin{column}{0.5\linewidth}
             \begin{figure}[H]
                 \centering
-                \includegraphics[width=0.4\linewidth]{figures/CUDA/GPU_Constant_Memory.png} 
+                \includegraphics[height=0.9\textheight]{figures/CUDA/GPU_Constant_Memory.png} 
             \end{figure}
         \end{column}
     \end{columns}
@@ -3508,5 +3513,9 @@ __global__ void stencil_1d(float *in, float *out, int N) {
         \item Đưa dữ liệu về dạng phù hợp với ứng dụng yêu cầu
         \item Giải phóng tài nguyên của CUDA
     \end{enumerate}
+\end{frame}
+
+\begin{frame}{Tài liệu tham khảo}
+    \printbibliography
 \end{frame}
 \end{document}
